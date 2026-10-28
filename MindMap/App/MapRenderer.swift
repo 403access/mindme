@@ -7,13 +7,29 @@ import MindMapCore
 struct MapRenderer {
     let graph: MindMapGraph
     let positions: [String: Vec2]
+    let positions3D: [String: Vec3]
     let camera: Camera
+    let camera3D: Camera3D
+    let modeBlend: Double
     let size: CGSize
     let time: Double
     let selectedNodeID: String?
     let hoveredNodeID: String?
     let showLabels: Bool
     let motion: Bool
+
+    private var projection: MapProjection {
+        MapProjection(
+            camera: camera,
+            camera3D: camera3D,
+            modeBlend: modeBlend,
+            size: size,
+            positions2D: positions,
+            positions3D: positions3D
+        )
+    }
+
+    private var spatialFade: Double { projection.spatialAlpha }
 
     private var halfWidth: CGFloat { size.width / 2 }
     private var halfHeight: CGFloat { size.height / 2 }
@@ -27,8 +43,14 @@ struct MapRenderer {
 
     func draw(into context: inout GraphicsContext) {
         drawGroupAuras(&context)
-        drawGrid(&context)
-        drawOrbits(&context)
+        if modeBlend < 0.99 {
+            drawGrid(&context, fade: 1 - spatialFade)
+            drawOrbits(&context, fade: 1 - spatialFade)
+        }
+        if modeBlend > 0.01 {
+            drawSpatialFloor(&context)
+            drawSpatialOrbits(&context)
+        }
         drawEdges(&context)
         drawNodes(&context)
         drawLabels(&context)
@@ -37,14 +59,14 @@ struct MapRenderer {
     /// Soft color fields behind each constellation.
     private func drawGroupAuras(_ context: inout GraphicsContext) {
         for group in graph.groupNodes {
-            guard let center = screenPoint(for: group.id) else { continue }
+            guard let center = displayPoint(group.id) else { continue }
             let children = graph.threadNodes.filter { $0.groupID == group.id }
-            var maxDistance: Double = 90
+            var maxDistance: CGFloat = 90
             for child in children {
-                guard let childPoint = positions[child.id] else { continue }
-                maxDistance = max(maxDistance, childPoint.distance(to: positions[group.id] ?? .zero))
+                guard let childPoint = displayPoint(child.id) else { continue }
+                maxDistance = max(maxDistance, hypot(childPoint.x - center.x, childPoint.y - center.y))
             }
-            let radius = CGFloat((maxDistance + 70) * camera.zoom)
+            let radius = maxDistance + 70
             guard radius > 30 else { continue }
             let color = HUD.color(for: group)
             context.fill(
@@ -74,8 +96,16 @@ struct MapRenderer {
     }
 
     private func screenPoint(for nodeID: String) -> CGPoint? {
-        guard let position = positions[nodeID] else { return nil }
-        return screenPoint(position)
+        projection.project(nodeID: nodeID)?.point
+    }
+
+    private func projection(for nodeID: String) -> ProjectedPoint? {
+        projection.project(nodeID: nodeID)
+    }
+
+    private func depthAlpha(_ projected: ProjectedPoint) -> Double {
+        let brightness = min(1.0, max(0.40, 0.42 + projected.scale * 0.62))
+        return 1 + (brightness - 1) * spatialFade
     }
 
     private func amplitude(_ nodeID: String) -> Double {
@@ -102,8 +132,8 @@ struct MapRenderer {
 
     // MARK: - Grid & orbits
 
-    private func drawGrid(_ context: inout GraphicsContext) {
-        guard camera.zoom > 0.24 else { return }
+    private func drawGrid(_ context: inout GraphicsContext, fade: Double) {
+        guard fade > 0.02, camera.zoom > 0.24 else { return }
         let topLeft = worldPoint(CGPoint(x: 0, y: 0))
         let bottomRight = worldPoint(CGPoint(x: size.width, y: size.height))
         let minor: Double = 140
@@ -140,12 +170,12 @@ struct MapRenderer {
             y += minor
         }
 
-        context.stroke(minorPath, with: .color(Color.white.opacity(0.022)), lineWidth: 0.5)
-        context.stroke(majorPath, with: .color(HUD.accent.opacity(0.045)), lineWidth: 0.6)
+        context.stroke(minorPath, with: .color(Color.white.opacity(0.022 * fade)), lineWidth: 0.5)
+        context.stroke(majorPath, with: .color(HUD.accent.opacity(0.065 * fade)), lineWidth: 0.6)
     }
 
-    private func drawOrbits(_ context: inout GraphicsContext) {
-        guard let root = displayPoint("root") else { return }
+    private func drawOrbits(_ context: inout GraphicsContext, fade: Double) {
+        guard fade > 0.02, let root = displayPoint("root") else { return }
         let clock = motion ? time : 0
         let radii: [Double] = [330, 660, 990]
         for (index, radius) in radii.enumerated() {
@@ -161,7 +191,7 @@ struct MapRenderer {
             path.addEllipse(in: rect)
             context.stroke(
                 path,
-                with: .color(HUD.accent.opacity(index == 0 ? 0.075 : 0.035)),
+                with: .color(HUD.accent.opacity((index == 0 ? 0.075 : 0.035) * fade)),
                 style: StrokeStyle(
                     lineWidth: 0.7,
                     dash: index == 0 ? [2, 9] : [1, 14],
@@ -179,7 +209,7 @@ struct MapRenderer {
                         path.addLine(to: screenPoint(outer))
                     }
                 }
-                context.stroke(tickPath, with: .color(HUD.accent.opacity(0.05)), lineWidth: 0.6)
+                context.stroke(tickPath, with: .color(HUD.accent.opacity(0.05 * fade)), lineWidth: 0.6)
             }
         }
 
@@ -197,11 +227,119 @@ struct MapRenderer {
             context.stroke(
                 sweep,
                 with: .linearGradient(
-                    Gradient(colors: [HUD.accent.opacity(0.22), HUD.accent.opacity(0)]),
+                    Gradient(colors: [HUD.accent.opacity(0.22 * fade), HUD.accent.opacity(0)]),
                     startPoint: CGPoint(x: root.x - sweepRadius, y: root.y),
                     endPoint: CGPoint(x: root.x + sweepRadius, y: root.y)
                 ),
                 style: StrokeStyle(lineWidth: 1.2, lineCap: .round)
+            )
+        }
+    }
+
+
+    // MARK: - Spatial environment
+
+    private func drawSpatialFloor(_ context: inout GraphicsContext) {
+        guard spatialFade > 0.02 else { return }
+        let floorY = -640.0
+        let extent = 1_900.0
+        let step = 190.0
+        let fade = spatialFade
+
+        var minor = Path()
+        var major = Path()
+        var index = 0
+        var x = -extent
+        while x <= extent {
+            if let a = projection.project(world: Vec3(x, floorY, -extent)),
+               let b = projection.project(world: Vec3(x, floorY, extent)) {
+                var p = Path()
+                p.move(to: a.point)
+                p.addLine(to: b.point)
+                if index % 5 == 0 { major.addPath(p) } else { minor.addPath(p) }
+            }
+            x += step
+            index += 1
+        }
+        index = 0
+        var z = -extent
+        while z <= extent {
+            if let a = projection.project(world: Vec3(-extent, floorY, z)),
+               let b = projection.project(world: Vec3(extent, floorY, z)) {
+                var p = Path()
+                p.move(to: a.point)
+                p.addLine(to: b.point)
+                if index % 5 == 0 { major.addPath(p) } else { minor.addPath(p) }
+            }
+            z += step
+            index += 1
+        }
+
+        context.stroke(minor, with: .color(HUD.accent.opacity(0.032 * fade)), lineWidth: 0.5)
+        context.stroke(major, with: .color(HUD.accent.opacity(0.065 * fade)), lineWidth: 0.7)
+
+        // Vertical tether from each group hub to the floor, anchoring clusters
+        // in space and making the perspective legible.
+        var stems = Path()
+        for group in graph.groupNodes {
+            guard let anchor = positions3D[group.id] else { continue }
+            guard let top = projection.project(world: anchor),
+                  let bottom = projection.project(world: Vec3(anchor.x, floorY, anchor.z))
+            else { continue }
+            stems.move(to: top.point)
+            stems.addLine(to: bottom.point)
+        }
+        context.stroke(
+            stems,
+            with: .color(HUD.accent.opacity(0.09 * fade)),
+            style: StrokeStyle(lineWidth: 0.7, dash: [2, 8])
+        )
+
+        // Floor ring under the root.
+        var ring = Path()
+        var started = false
+        for segment in 0...96 {
+            let angle = Double(segment) / 96 * 2 * .pi
+            let point = Vec3(cos(angle) * 540, floorY, sin(angle) * 540)
+            guard let projected = projection.project(world: point) else { continue }
+            if !started {
+                ring.move(to: projected.point)
+                started = true
+            } else {
+                ring.addLine(to: projected.point)
+            }
+        }
+        context.stroke(ring, with: .color(HUD.accent.opacity(0.075 * fade)), lineWidth: 0.8)
+    }
+
+    private func drawSpatialOrbits(_ context: inout GraphicsContext) {
+        guard spatialFade > 0.02 else { return }
+        let fade = spatialFade
+        for (index, radius) in [360.0, 720.0, 1_080.0].enumerated() {
+            var path = Path()
+            var started = false
+            for segment in 0...96 {
+                let angle = Double(segment) / 96 * 2 * .pi
+                let point = Vec3(cos(angle) * radius, 0, sin(angle) * radius)
+                guard let projected = projection.project(world: point) else {
+                    started = false
+                    continue
+                }
+                if !started {
+                    path.move(to: projected.point)
+                    started = true
+                } else {
+                    path.addLine(to: projected.point)
+                }
+            }
+            context.stroke(
+                path,
+                with: .color(HUD.accent.opacity((index == 0 ? 0.10 : 0.045) * fade)),
+                style: StrokeStyle(
+                    lineWidth: 0.7,
+                    dash: index == 0 ? [2, 9] : [1, 14],
+                    dashPhase: time * (index % 2 == 0 ? 4 : -3)
+                )
             )
         }
     }
@@ -220,10 +358,16 @@ struct MapRenderer {
         var pulseBudget = focusActive ? 90 : 14
 
         for (index, edge) in graph.edges.enumerated() {
-            guard let from = displayPoint(edge.source), let to = displayPoint(edge.target) else { continue }
-            let rect = CGRect(origin: .zero, size: size).insetBy(dx: -180, dy: -180)
+            guard let from = displayPoint(edge.source), let to = displayPoint(edge.target),
+                  let projectedFrom = projection(for: edge.source),
+                  let projectedTo = projection(for: edge.target)
+            else { continue }
+            let rect = CGRect(origin: .zero, size: size).insetBy(dx: -240, dy: -240)
             if !rect.contains(from) && !rect.contains(to) { continue }
 
+            let averageScale = (projectedFrom.scale + projectedTo.scale) / 2
+            let edgeScale = 1 + (min(1.7, max(0.5, averageScale)) - 1) * spatialFade
+            let depthFade = 1 + (min(1, max(0.35, 0.35 + averageScale * 0.65)) - 1) * spatialFade
             let highlighted = isHighlighted(edge.source) && isHighlighted(edge.target)
             let dimmed = focusActive && !highlighted
             let tint = edgeTint(edge)
@@ -231,22 +375,22 @@ struct MapRenderer {
 
             if !dimmed {
                 let tagDamping = edge.kind == .threadTag ? 0.72 : 1.0
-                let baseAlpha = (highlighted ? (focusActive ? 0.5 : 0.115) : 0.04) * tagDamping
+                let baseAlpha = (highlighted ? (focusActive ? 0.5 : 0.115) : 0.04) * tagDamping * depthFade
                 // The glow layer is only worth its draw cost when a path is
                 // actually being inspected.
                 if focusActive {
-                    let glowAlpha = (highlighted ? 0.12 : 0.02) * tagDamping
+                    let glowAlpha = (highlighted ? 0.12 : 0.02) * tagDamping * depthFade
                     context.stroke(
                         curve.path,
                         with: .color(tint.opacity(glowAlpha)),
-                        style: StrokeStyle(lineWidth: highlighted ? 5.5 : 2.5, lineCap: .round)
+                        style: StrokeStyle(lineWidth: (highlighted ? 5.5 : 2.5) * edgeScale, lineCap: .round)
                     )
                 }
                 context.stroke(
                     curve.path,
                     with: .color(tint.opacity(baseAlpha)),
                     style: StrokeStyle(
-                        lineWidth: highlighted ? 1.15 : 0.65,
+                        lineWidth: (highlighted ? 1.15 : 0.65) * edgeScale,
                         lineCap: .round,
                         dash: edge.kind == .threadTag ? [1.5, 4.5] : []
                     )
@@ -254,7 +398,7 @@ struct MapRenderer {
             } else {
                 context.stroke(
                     curve.path,
-                    with: .color(Color.white.opacity(0.04)),
+                    with: .color(Color.white.opacity(0.04 * depthFade)),
                     style: StrokeStyle(lineWidth: 0.6, lineCap: .round)
                 )
             }
@@ -268,7 +412,7 @@ struct MapRenderer {
                 let offset = Double(hash % 1000) / 1000
                 let phase = (time * speed + offset).truncatingRemainder(dividingBy: 1.0)
                 let point = quadraticPoint(curve.from, curve.control, curve.to, phase)
-                let pulseRadius: CGFloat = edge.kind == .threadTag ? 1.3 : 1.9
+                let pulseRadius: CGFloat = (edge.kind == .threadTag ? 1.3 : 1.9) * edgeScale
                 let color = edge.kind == .threadTag ? HUD.accent.opacity(0.7) : tint
                 context.fill(
                     Path(ellipseIn: CGRect(
@@ -334,25 +478,63 @@ struct MapRenderer {
     // MARK: - Nodes
 
     private func drawNodes(_ context: inout GraphicsContext) {
-        // Tags sit behind the conversations.
-        for node in graph.tagNodes {
-            guard let point = displayPoint(node.id) else { continue }
-            drawTag(node, at: point, context: &context)
-        }
+        if modeBlend > 0.01 {
+            let ordered = graph.nodes.compactMap { node -> (MindMapNode, ProjectedPoint)? in
+                guard let projected = projection(for: node.id) else { return nil }
+                return (node, projected)
+            }
+            .sorted { $0.1.depth > $1.1.depth }
 
-        for node in graph.groupNodes {
-            guard let point = displayPoint(node.id) else { continue }
-            drawGroup(node, at: point, context: &context)
+            for (node, projected) in ordered {
+                let point = CGPoint(
+                    x: projected.point.x,
+                    y: projected.point.y + amplitude(node.id)
+                )
+                drawNodeScaled(node, at: point, scale: CGFloat(projected.scale), alpha: depthAlpha(projected), context: &context)
+            }
+        } else {
+            // Tags sit behind the conversations on the flat map.
+            for node in graph.tagNodes {
+                guard let point = displayPoint(node.id) else { continue }
+                drawNodeScaled(node, at: point, scale: 1, alpha: 1, context: &context)
+            }
+            for node in graph.groupNodes {
+                guard let point = displayPoint(node.id) else { continue }
+                drawNodeScaled(node, at: point, scale: 1, alpha: 1, context: &context)
+            }
+            for node in graph.threadNodes {
+                guard let point = displayPoint(node.id) else { continue }
+                drawNodeScaled(node, at: point, scale: 1, alpha: 1, context: &context)
+            }
+            if let root = graph.rootNode, let point = displayPoint(root.id) {
+                drawNodeScaled(root, at: point, scale: 1, alpha: 1, context: &context)
+            }
         }
+    }
 
-        for node in graph.threadNodes {
-            guard let point = displayPoint(node.id) else { continue }
-            drawThread(node, at: point, context: &context)
+    private func drawNodeScaled(
+        _ node: MindMapNode,
+        at point: CGPoint,
+        scale: CGFloat,
+        alpha: Double,
+        context: inout GraphicsContext
+    ) {
+        let savedTransform = context.transform
+        let savedOpacity = context.opacity
+        context.opacity = savedOpacity * alpha
+        if abs(scale - 1) > 0.01 {
+            context.translateBy(x: point.x, y: point.y)
+            context.scaleBy(x: scale, y: scale)
+            context.translateBy(x: -point.x, y: -point.y)
         }
-
-        if let root = graph.rootNode, let point = displayPoint(root.id) {
-            drawRoot(root, at: point, context: &context)
+        switch node.kind {
+        case .tag: drawTag(node, at: point, context: &context)
+        case .group: drawGroup(node, at: point, context: &context)
+        case .thread: drawThread(node, at: point, context: &context)
+        case .root: drawRoot(node, at: point, context: &context)
         }
+        context.transform = savedTransform
+        context.opacity = savedOpacity
     }
 
     private func drawTag(_ node: MindMapNode, at point: CGPoint, context: inout GraphicsContext) {
@@ -691,33 +873,219 @@ struct MapRenderer {
             )
         }
         context.stroke(spokes, with: .color(color.opacity(0.45)), lineWidth: 0.7)
+    }
 
-        // Labels on a subtle plate so tag nodes never cut through them.
+    // MARK: - Labels
+
+    private func drawLabels(_ context: inout GraphicsContext) {
+        if showLabels {
+            var occupied: [CGRect] = []
+            let spatial = modeBlend > 0.01
+            let zoom = camera.zoom
+
+            struct Candidate {
+                var node: MindMapNode
+                var point: CGPoint
+                var scale: CGFloat
+                var alpha: Double
+                var priority: Double
+            }
+
+            var candidates: [Candidate] = []
+            let topThreadIDs = Set(
+                graph.threadNodes
+                    .sorted { $0.weight > $1.weight }
+                    .prefix(6)
+                    .map(\.id)
+            )
+
+            for node in graph.threadNodes {
+                guard let projected = projection(for: node.id) else { continue }
+                let selected = selectedNodeID == node.id
+                let hovered = hoveredNodeID == node.id
+                let focused = isHighlighted(node.id)
+                let notable = topThreadIDs.contains(node.id)
+                let shouldShow: Bool
+                if spatial {
+                    shouldShow = selected || hovered
+                } else {
+                    shouldShow =
+                        selected || hovered ||
+                        (zoom >= 0.98 && focused) ||
+                        (zoom >= 1.35)
+                }
+                guard shouldShow else { continue }
+                let point = CGPoint(
+                    x: projected.point.x,
+                    y: projected.point.y + amplitude(node.id)
+                )
+                let priority = selected ? 1000.0 : hovered ? 900.0 : (notable ? 44.0 : 10.0) + node.weight
+                candidates.append(Candidate(
+                    node: node,
+                    point: point,
+                    scale: CGFloat(projected.scale),
+                    alpha: depthAlpha(projected),
+                    priority: priority
+                ))
+            }
+
+            if spatial || zoom >= 1.05 || selectedNodeID != nil {
+                for node in graph.tagNodes {
+                    guard let projected = projection(for: node.id) else { continue }
+                    let selected = selectedNodeID == node.id
+                    guard selected || (!spatial && zoom >= 1.7 && node.weight >= 4) else { continue }
+                    let point = CGPoint(
+                        x: projected.point.x,
+                        y: projected.point.y + amplitude(node.id)
+                    )
+                    candidates.append(Candidate(
+                        node: node,
+                        point: point,
+                        scale: CGFloat(projected.scale),
+                        alpha: depthAlpha(projected),
+                        priority: selected ? 950 : 5
+                    ))
+                }
+            }
+
+            candidates.sort { $0.priority > $1.priority }
+
+            for candidate in candidates {
+                let node = candidate.node
+                let selected = selectedNodeID == node.id
+                let hovered = hoveredNodeID == node.id
+                let dimmed = isDimmed(node.id)
+                if dimmed { continue }
+                let color = HUD.color(for: node)
+                let isTag = node.kind == .tag
+                let text = shorten(node.label, limit: isTag ? 22 : (zoom > 1.2 || spatial ? 38 : 30))
+                let font = isTag ? HUDFont.micro(7.6) : HUDFont.micro(8.6)
+                let alpha = candidate.alpha * (dimmed ? 0.25 : 1)
+                let textColor: Color = selected || hovered
+                    ? HUD.text
+                    : (isTag ? HUD.textSoft.opacity(0.85 * alpha) : HUD.text.opacity(0.72 * alpha))
+
+                let resolved = context.resolve(
+                    Text(text)
+                        .font(font)
+                        .foregroundColor(textColor)
+                        .tracking(isTag ? 0.4 : 0.15)
+                )
+                let measured = resolved.measure(in: CGSize(width: 300, height: 30))
+                let offsetY: CGFloat = (isTag ? 9 : threadRadius(node, selected: false, hovered: false) + 8) * max(0.65, min(1.5, candidate.scale))
+                let origin = CGPoint(
+                    x: candidate.point.x - measured.width / 2 - 3,
+                    y: candidate.point.y + offsetY
+                )
+                var rect = CGRect(origin: origin, size: CGSize(width: measured.width + 6, height: measured.height + 2))
+
+                if rect.minX < 4 || rect.maxX > size.width - 4 { continue }
+                if rect.minY < 4 || rect.maxY > size.height - 4 { continue }
+                if occupied.contains(where: { $0.intersects(rect.insetBy(dx: -3, dy: -2)) }) { continue }
+                occupied.append(rect)
+
+                let bg = Path(roundedRect: rect.insetBy(dx: -4, dy: -1), cornerRadius: 4)
+                context.fill(
+                    bg,
+                    with: .color(Color(hex: 0x050A12).opacity((selected || hovered ? 0.82 : 0.55) * alpha))
+                )
+                if selected || hovered {
+                    context.stroke(bg, with: .color(color.opacity(0.35 * alpha)), lineWidth: 0.6)
+                }
+                rect = rect.insetBy(dx: -4, dy: -1)
+                occupied[occupied.count - 1] = rect
+
+                context.draw(resolved, at: CGPoint(x: rect.midX, y: rect.midY), anchor: .center)
+            }
+
+            // Hubs always keep their labels, drawn inward toward the root.
+            for group in graph.groupNodes {
+                guard let projected = projection(for: group.id) else { continue }
+                let selected = selectedNodeID == group.id
+                let hovered = hoveredNodeID == group.id
+                let dimmed = isDimmed(group.id)
+                let color = HUD.color(for: group)
+                let alpha = depthAlpha(projected) * (dimmed ? 0.3 : 1)
+                let label = shorten(group.label, limit: 22)
+                let resolved = context.resolve(
+                    Text(label)
+                        .font(HUDFont.label(8.4))
+                        .foregroundColor(
+                            selected || hovered ? HUD.text : color.opacity(0.82 * alpha)
+                        )
+                        .tracking(1.1)
+                )
+                let measured = resolved.measure(in: CGSize(width: 220, height: 24))
+                let rootPoint = displayPoint("root") ?? CGPoint(x: halfWidth, y: halfHeight)
+                let point = CGPoint(
+                    x: projected.point.x,
+                    y: projected.point.y + amplitude(group.id)
+                )
+                let dx = rootPoint.x - point.x
+                let dy = rootPoint.y - point.y
+                let length = max(1, sqrt(dx * dx + dy * dy))
+                let labelPoint = CGPoint(
+                    x: point.x + dx / length * 47 * max(0.7, min(1.4, projected.scale)),
+                    y: point.y + dy / length * 47 * max(0.7, min(1.4, projected.scale))
+                )
+                let rect = CGRect(
+                    x: labelPoint.x - measured.width / 2 - 2,
+                    y: labelPoint.y - measured.height / 2,
+                    width: measured.width + 4,
+                    height: measured.height
+                )
+                if occupied.contains(where: { $0.intersects(rect.insetBy(dx: -2, dy: -1)) }) { continue }
+                occupied.append(rect)
+
+                let plate = Path(roundedRect: rect.insetBy(dx: -5, dy: -2), cornerRadius: 4)
+                context.fill(plate, with: .color(Color(hex: 0x050A12).opacity((dimmed ? 0.35 : 0.82) * alpha)))
+                context.stroke(
+                    plate,
+                    with: .color(color.opacity((selected || hovered ? 0.55 : 0.2) * alpha)),
+                    lineWidth: 0.6
+                )
+                context.draw(resolved, at: CGPoint(x: rect.midX, y: rect.midY), anchor: .center)
+            }
+        }
+
+        drawRootCaption(&context)
+    }
+
+    private func drawRootCaption(_ context: inout GraphicsContext) {
+        guard spatialFade < 0.86,
+              let root = graph.rootNode,
+              let projected = projection(for: root.id),
+              let point = displayPoint(root.id)
+        else { return }
+        let alpha = depthAlpha(projected) * (1 - spatialFade)
+        guard alpha > 0.06 else { return }
+        let scale = CGFloat(max(0.75, min(1.5, projected.scale)))
         let title = context.resolve(
             Text("MINDME")
                 .font(HUDFont.label(12.5))
-                .foregroundColor(HUD.text)
+                .foregroundColor(HUD.text.opacity(alpha))
                 .tracking(4.2)
         )
         let subtitle = context.resolve(
-            Text(node.subtitle ?? "CONVERSATION NEXUS")
+            Text(root.subtitle ?? "CONVERSATION NEXUS")
                 .font(HUDFont.micro(7.4))
-                .foregroundColor(HUD.accent.opacity(0.66))
+                .foregroundColor(HUD.accent.opacity(0.66 * alpha))
                 .tracking(1.6)
         )
-        let titleSize = title.measure(in: CGSize(width: 260, height: 30))
-        let subtitleSize = subtitle.measure(in: CGSize(width: 320, height: 24))
+        let titleSize = title.measure(in: CGSize(width: 320, height: 30))
+        let subtitleSize = subtitle.measure(in: CGSize(width: 380, height: 24))
         let plateWidth = max(titleSize.width, subtitleSize.width) + 16
         let plateHeight = titleSize.height + subtitleSize.height + 10
         let plateRect = CGRect(
             x: point.x - plateWidth / 2,
-            y: point.y + radius + 20,
+            y: point.y + 34 * scale + 20 * scale,
             width: plateWidth,
             height: plateHeight
         )
+        guard plateRect.minY < size.height, plateRect.maxY > 0 else { return }
         let plate = Path(roundedRect: plateRect, cornerRadius: 5)
-        context.fill(plate, with: .color(Color(hex: 0x050A12).opacity(0.62)))
-        context.stroke(plate, with: .color(HUD.accent.opacity(0.12)), lineWidth: 0.6)
+        context.fill(plate, with: .color(Color(hex: 0x050A12).opacity(0.62 * alpha)))
+        context.stroke(plate, with: .color(HUD.accent.opacity(0.12 * alpha)), lineWidth: 0.6)
         context.draw(
             title,
             at: CGPoint(x: plateRect.midX, y: plateRect.minY + 5 + titleSize.height / 2),
@@ -728,142 +1096,6 @@ struct MapRenderer {
             at: CGPoint(x: plateRect.midX, y: plateRect.maxY - 5 - subtitleSize.height / 2),
             anchor: .center
         )
-    }
-
-    // MARK: - Labels
-
-    private func drawLabels(_ context: inout GraphicsContext) {
-        guard showLabels else { return }
-        var occupied: [CGRect] = []
-        let zoom = camera.zoom
-
-        struct Candidate {
-            var node: MindMapNode
-            var point: CGPoint
-            var priority: Double
-        }
-
-        var candidates: [Candidate] = []
-        let topThreadIDs = Set(
-            graph.threadNodes
-                .sorted { $0.weight > $1.weight }
-                .prefix(6)
-                .map(\.id)
-        )
-
-        for node in graph.threadNodes {
-            guard let point = displayPoint(node.id) else { continue }
-            let selected = selectedNodeID == node.id
-            let hovered = hoveredNodeID == node.id
-            let focused = isHighlighted(node.id)
-            let notable = topThreadIDs.contains(node.id)
-            let shouldShow =
-                selected || hovered ||
-                (zoom >= 0.98 && focused) ||
-                (zoom >= 1.35)
-            guard shouldShow else { continue }
-            let priority = selected ? 1000.0 : hovered ? 900.0 : (notable ? 44.0 : 10.0) + node.weight
-            candidates.append(Candidate(node: node, point: point, priority: priority))
-        }
-
-        if zoom >= 1.05 || selectedNodeID != nil {
-            for node in graph.tagNodes {
-                let selected = selectedNodeID == node.id
-                guard selected || (zoom >= 1.7 && node.weight >= 4) else { continue }
-                guard let point = displayPoint(node.id) else { continue }
-                candidates.append(Candidate(node: node, point: point, priority: selected ? 950 : 5))
-            }
-        }
-
-        candidates.sort { $0.priority > $1.priority }
-
-        for candidate in candidates {
-            let node = candidate.node
-            let selected = selectedNodeID == node.id
-            let hovered = hoveredNodeID == node.id
-            let dimmed = isDimmed(node.id)
-            if dimmed { continue }
-            let color = HUD.color(for: node)
-            let isTag = node.kind == .tag
-            let text = shorten(node.label, limit: isTag ? 22 : (zoom > 1.2 ? 46 : 30))
-            let font = isTag ? HUDFont.micro(7.6) : HUDFont.micro(8.6)
-            let textColor: Color = selected || hovered
-                ? HUD.text
-                : (isTag ? HUD.textSoft.opacity(0.85) : HUD.text.opacity(0.72))
-
-            let resolved = context.resolve(
-                Text(text)
-                    .font(font)
-                    .foregroundColor(textColor)
-                    .tracking(isTag ? 0.4 : 0.15)
-            )
-            let measured = resolved.measure(in: CGSize(width: 260, height: 30))
-            let offsetY: CGFloat = isTag ? 9 : threadRadius(node, selected: false, hovered: false) + 8
-            let origin = CGPoint(
-                x: candidate.point.x - measured.width / 2 - 3,
-                y: candidate.point.y + offsetY
-            )
-            var rect = CGRect(origin: origin, size: CGSize(width: measured.width + 6, height: measured.height + 2))
-
-            if rect.minX < 4 || rect.maxX > size.width - 4 { continue }
-            if rect.minY < 4 || rect.maxY > size.height - 4 { continue }
-            if occupied.contains(where: { $0.intersects(rect.insetBy(dx: -3, dy: -2)) }) { continue }
-            occupied.append(rect)
-
-            let bg = Path(roundedRect: rect.insetBy(dx: -4, dy: -1), cornerRadius: 4)
-            context.fill(bg, with: .color(Color(hex: 0x050A12).opacity(selected || hovered ? 0.82 : 0.55)))
-            if selected || hovered {
-                context.stroke(bg, with: .color(color.opacity(0.35)), lineWidth: 0.6)
-            }
-            rect = rect.insetBy(dx: -4, dy: -1)
-            occupied[occupied.count - 1] = rect
-
-            context.draw(resolved, at: CGPoint(x: rect.midX, y: rect.midY), anchor: .center)
-        }
-
-        // Hub labels are always visible, drawn below their nodes.
-        for node in graph.groupNodes {
-            guard let point = displayPoint(node.id) else { continue }
-            let selected = selectedNodeID == node.id
-            let hovered = hoveredNodeID == node.id
-            let dimmed = isDimmed(node.id)
-            let color = HUD.color(for: node)
-            let label = shorten(node.label, limit: 22)
-            let resolved = context.resolve(
-                Text(label)
-                    .font(HUDFont.label(8.4))
-                    .foregroundColor(
-                        selected || hovered ? HUD.text : color.opacity(dimmed ? 0.3 : 0.82)
-                    )
-                    .tracking(1.1)
-            )
-            let measured = resolved.measure(in: CGSize(width: 220, height: 24))
-            let rootPoint = displayPoint("root") ?? CGPoint(x: halfWidth, y: halfHeight)
-            let dx = rootPoint.x - point.x
-            let dy = rootPoint.y - point.y
-            let length = max(1, sqrt(dx * dx + dy * dy))
-            let labelPoint = CGPoint(
-                x: point.x + dx / length * 47,
-                y: point.y + dy / length * 47
-            )
-            let rect = CGRect(
-                x: labelPoint.x - measured.width / 2 - 2,
-                y: labelPoint.y - measured.height / 2,
-                width: measured.width + 4,
-                height: measured.height
-            )
-            if occupied.contains(where: { $0.intersects(rect.insetBy(dx: -2, dy: -1)) }) { continue }
-            occupied.append(rect)
-
-            let plate = Path(roundedRect: rect.insetBy(dx: -5, dy: -2), cornerRadius: 4)
-            context.fill(plate, with: .color(Color(hex: 0x050A12).opacity(dimmed ? 0.55 : 0.92)))
-            context.stroke(
-                plate,
-                with: .color(color.opacity(selected || hovered ? 0.55 : 0.2)),
-                lineWidth: 0.6
-            )
-            context.draw(resolved, at: CGPoint(x: rect.midX, y: rect.midY), anchor: .center)
-        }
     }
 
     private func shorten(_ text: String, limit: Int) -> String {

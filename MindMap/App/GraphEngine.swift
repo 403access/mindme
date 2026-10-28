@@ -13,13 +13,16 @@ struct Camera: Equatable, Sendable {
 
 struct RenderFrame: Equatable {
     var positions: [String: Vec2] = [:]
+    var positions3D: [String: Vec3] = [:]
     var camera: Camera = .identity
+    var camera3D = Camera3D()
+    var modeBlend: Double = 0
     var time: Double = 0
     var isSettling: Bool = false
     var fps: Int = 60
 }
 
-/// Owns the render loop, force simulation, camera and hit testing. Publishes a
+/// Owns the render loop, force simulation, cameras and hit testing. Publishes a
 /// single `RenderFrame` per update so SwiftUI only invalidates once per tick.
 /// Rendering is throttled once the simulation settles, keeping an idle map
 /// close to zero CPU.
@@ -34,6 +37,7 @@ final class GraphEngine: ObservableObject {
 
     private var currentFrame = RenderFrame()
     private var layout: ForceLayout?
+    private var spatialAnchors: [String: Vec3] = [:]
     private var timer: Timer?
     private var lastTick: Date?
     private var lastPublish: Date = .distantPast
@@ -44,15 +48,23 @@ final class GraphEngine: ObservableObject {
 
     private var targetCenter: Vec2 = .zero
     private var targetZoom: Double = 1
-    private var hasFitted = false
+    private var targetCamera3D = Camera3D()
+    private var targetModeBlend: Double = 0
+    private var hasSpatialCamera = false
     private var fitPending = false
+    private var spatialFitPending = false
     private var wasSettling = false
     private(set) var autoFramed = true
+    private(set) var spatialAutoFramed = true
 
     private let minZoom = 0.16
     private let maxZoom = 2.8
+    private let minDistance: Double = 280
+    private let maxDistance: Double = 7_000
 
+    private(set) var spatialMode: Bool = false
     var hasFittedOnce: Bool { hasFitted }
+    private var hasFitted = false
 
     // MARK: - Lifecycle
 
@@ -85,11 +97,38 @@ final class GraphEngine: ObservableObject {
         currentFrame.isSettling = true
         autoFitStep = nil
 
+        spatialAnchors = GraphLayout3D.anchors(for: newGraph)
+        currentFrame.positions3D = spatialAnchors
+
         if refit || !hasFitted {
             hasFitted = true
             autoFramed = true
             autoFitStep = 46
             fitPending = true
+            if spatialMode { spatialFitPending = true }
+        } else if spatialMode, spatialAutoFramed {
+            spatialFitPending = true
+        }
+        publish(force: true)
+    }
+
+    // MARK: - Dimension
+
+    func setSpatialMode(_ enabled: Bool) {
+        guard enabled != spatialMode else { return }
+        spatialMode = enabled
+        targetModeBlend = enabled ? 1 : 0
+        interactionDeadline = Date().addingTimeInterval(1.0)
+        if enabled {
+            spatialAutoFramed = true
+            spatialFitPending = true
+            if viewSize.width > 10 { applySpatialFit() }
+        } else {
+            spatialFitPending = false
+            if autoFramed {
+                fitPending = true
+                if viewSize.width > 10 { applyFit() }
+            }
         }
         publish(force: true)
     }
@@ -114,13 +153,19 @@ final class GraphEngine: ObservableObject {
         if let autoFitStep, simulationSteps >= autoFitStep {
             self.autoFitStep = nil
             fitPending = false
+            spatialFitPending = false
             applyFit()
+            if spatialMode, spatialAutoFramed { applySpatialFit() }
         } else if fitPending, viewSize.width > 10, viewSize.height > 10 {
             fitPending = false
             applyFit()
         }
+        if spatialFitPending, viewSize.width > 10, viewSize.height > 10 {
+            spatialFitPending = false
+            applySpatialFit()
+        }
 
-        // Smooth camera toward the requested target.
+        // 2D camera smoothing.
         var camera = currentFrame.camera
         let smooth = 1.0 - exp(-9.5 * dt)
         camera.center += (targetCenter - camera.center) * smooth
@@ -129,9 +174,36 @@ final class GraphEngine: ObservableObject {
         camera.zoom = exp(currentLog + (targetLog - currentLog) * smooth)
         if camera.center.distance(to: targetCenter) < 0.15 { camera.center = targetCenter }
         if abs(camera.zoom - targetZoom) < 0.001 { camera.zoom = targetZoom }
-
         let cameraMoving = camera != currentFrame.camera
         currentFrame.camera = camera
+
+        // 3D camera smoothing.
+        var camera3D = currentFrame.camera3D
+        let smooth3D = 1.0 - exp(-8.5 * dt)
+        camera3D.yaw += (targetCamera3D.yaw - camera3D.yaw) * smooth3D
+        camera3D.pitch += (targetCamera3D.pitch - camera3D.pitch) * smooth3D
+        camera3D.target += (targetCamera3D.target - camera3D.target) * smooth3D
+        let logDistance = log(max(camera3D.distance, 1))
+        let logTarget = log(max(targetCamera3D.distance, 1))
+        camera3D.distance = exp(logDistance + (logTarget - logDistance) * smooth3D)
+        if abs(camera3D.yaw - targetCamera3D.yaw) < 0.0005 { camera3D.yaw = targetCamera3D.yaw }
+        if abs(camera3D.pitch - targetCamera3D.pitch) < 0.0005 { camera3D.pitch = targetCamera3D.pitch }
+        if camera3D.target.distance(to: targetCamera3D.target) < 0.2 { camera3D.target = targetCamera3D.target }
+        if abs(camera3D.distance - targetCamera3D.distance) < 0.5 { camera3D.distance = targetCamera3D.distance }
+        let camera3DMoving = camera3D != currentFrame.camera3D
+        currentFrame.camera3D = camera3D
+
+        // Crossfade between the flat map and the spatial projection.
+        var modeMoving = false
+        let blendDelta = targetModeBlend - currentFrame.modeBlend
+        if abs(blendDelta) > 0.0005 {
+            currentFrame.modeBlend += blendDelta * (1 - exp(-7.0 * dt))
+            if abs(targetModeBlend - currentFrame.modeBlend) < 0.002 {
+                currentFrame.modeBlend = targetModeBlend
+            }
+            modeMoving = true
+        }
+
         currentFrame.time += dt
 
         let instant = 1.0 / max(now.timeIntervalSince(lastPublish), 0.0001)
@@ -148,11 +220,10 @@ final class GraphEngine: ObservableObject {
         let interacting = now < interactionDeadline
         let ambientActive = ambientMotion && NSApp.isActive
         let ambientInterval = ambientActive ? 1.0 / 10.0 : 1.0 / 2.0
-        // The simulation steps at 60 Hz, but the canvas does not need to redraw
-        // at full rate: 45 fps keeps the movement smooth at roughly half the cost.
         let activeInterval = 1.0 / 45.0
-        let needsFrame = settling || cameraMoving || interacting || ambientActive
-        let interval = (settling || cameraMoving || interacting) ? activeInterval : ambientInterval
+        let active = settling || cameraMoving || camera3DMoving || modeMoving || interacting
+        let needsFrame = active || ambientActive
+        let interval = active ? activeInterval : ambientInterval
 
         if needsFrame, now.timeIntervalSince(lastPublish) >= interval {
             publish(force: false)
@@ -165,12 +236,18 @@ final class GraphEngine: ObservableObject {
         lastPublish = Date()
     }
 
-    // MARK: - Camera
+    // MARK: - Fit
 
     func requestFit() {
         interactionDeadline = Date().addingTimeInterval(0.8)
-        fitPending = true
-        if viewSize.width > 10 { applyFit() }
+        if spatialMode {
+            spatialAutoFramed = true
+            spatialFitPending = true
+            if viewSize.width > 10 { applySpatialFit() }
+        } else {
+            fitPending = true
+            if viewSize.width > 10 { applyFit() }
+        }
     }
 
     func applyFit() {
@@ -201,16 +278,53 @@ final class GraphEngine: ObservableObject {
         autoFramed = true
     }
 
+    func applySpatialFit() {
+        spatialFitPending = false
+        guard !spatialAnchors.isEmpty else { return }
+        let fitted = targetCamera3D.fit(
+            points: Array(spatialAnchors.values),
+            in: viewSize,
+            keepAngles: hasSpatialCamera
+        )
+        if !hasSpatialCamera {
+            currentFrame.camera3D = fitted
+            hasSpatialCamera = true
+        }
+        targetCamera3D = fitted
+        spatialAutoFramed = true
+    }
+
     func resetCamera() {
         interactionDeadline = Date().addingTimeInterval(0.8)
         autoFramed = false
         targetCenter = .zero
         targetZoom = 1
+        if spatialMode {
+            spatialAutoFramed = false
+            var reset = Camera3D()
+            reset.target = .zero
+            targetCamera3D = reset
+            currentFrame.camera3D = reset
+            publish(force: true)
+        }
     }
 
+    // MARK: - Focus
+
     func focus(nodeID: String, zoom requestedZoom: Double? = nil) {
-        guard let position = currentFrame.positions[nodeID] else { return }
         interactionDeadline = Date().addingTimeInterval(0.9)
+        if spatialMode {
+            guard let point = spatialAnchors[nodeID] else { return }
+            spatialAutoFramed = false
+            targetCamera3D.target = point
+            targetCamera3D.distance = min(
+                targetCamera3D.distance,
+                max(minDistance, 1_250)
+            )
+            publish(force: true)
+            return
+        }
+        guard let position = currentFrame.positions[nodeID] else { return }
         autoFramed = false
         targetCenter = position
         targetZoom = min(max(requestedZoom ?? max(currentFrame.camera.zoom, 0.95), minZoom), maxZoom)
@@ -221,7 +335,13 @@ final class GraphEngine: ObservableObject {
         targetCenter = point
     }
 
+    // MARK: - Navigation
+
     func pan(byScreenTranslation translation: CGSize) {
+        if spatialMode {
+            panSpatial(by: translation)
+            return
+        }
         guard currentFrame.camera.zoom > 0 else { return }
         interactionDeadline = Date().addingTimeInterval(0.5)
         autoFramed = false
@@ -234,7 +354,38 @@ final class GraphEngine: ObservableObject {
         publish(force: true)
     }
 
+    private func panSpatial(by translation: CGSize) {
+        interactionDeadline = Date().addingTimeInterval(0.5)
+        spatialAutoFramed = false
+        let delta = currentFrame.camera3D.panDelta(screenTranslation: translation, size: viewSize)
+        var camera = currentFrame.camera3D
+        camera.target += delta
+        currentFrame.camera3D = camera
+        targetCamera3D.target = camera.target
+        publish(force: true)
+    }
+
+    func orbit(byScreenTranslation translation: CGSize) {
+        guard spatialMode else { return }
+        interactionDeadline = Date().addingTimeInterval(0.5)
+        spatialAutoFramed = false
+        var camera = currentFrame.camera3D
+        let sensitivity = 0.006
+        camera.yaw += Double(translation.width) * sensitivity
+        camera.pitch = min(1.25, max(-1.25, camera.pitch - Double(translation.height) * sensitivity))
+        currentFrame.camera3D = camera
+        targetCamera3D.yaw = camera.yaw
+        targetCamera3D.pitch = camera.pitch
+        targetCamera3D.target = camera.target
+        targetCamera3D.distance = camera.distance
+        publish(force: true)
+    }
+
     func zoom(by factor: Double, around point: CGPoint) {
+        if spatialMode {
+            zoomSpatial(by: factor)
+            return
+        }
         var camera = currentFrame.camera
         let before = worldPoint(from: point)
         let newZoom = min(max(camera.zoom * factor, minZoom), maxZoom)
@@ -248,6 +399,15 @@ final class GraphEngine: ObservableObject {
         currentFrame.camera = camera
         targetCenter = camera.center
         targetZoom = newZoom
+        publish(force: true)
+    }
+
+    private func zoomSpatial(by factor: Double) {
+        interactionDeadline = Date().addingTimeInterval(0.5)
+        spatialAutoFramed = false
+        let newDistance = min(maxDistance, max(minDistance, currentFrame.camera3D.distance / factor))
+        currentFrame.camera3D.distance = newDistance
+        targetCamera3D.distance = newDistance
         publish(force: true)
     }
 
@@ -267,23 +427,36 @@ final class GraphEngine: ObservableObject {
         )
     }
 
+    var projection: MapProjection {
+        MapProjection(
+            camera: currentFrame.camera,
+            camera3D: currentFrame.camera3D,
+            modeBlend: currentFrame.modeBlend,
+            size: viewSize,
+            positions2D: currentFrame.positions,
+            positions3D: currentFrame.positions3D
+        )
+    }
+
     // MARK: - Hit testing
 
     func hitTest(at point: CGPoint) -> MindMapNode? {
         guard viewSize.width > 0 else { return nil }
-        let camera = currentFrame.camera
-        var best: (node: MindMapNode, distance: Double)?
+        let projection = self.projection
+        var best: (node: MindMapNode, distance: Double, depth: Double)?
         for node in graph.nodes {
-            guard let position = currentFrame.positions[node.id] else { continue }
-            let screenX = Double(viewSize.width) / 2 + (position.x - camera.center.x) * camera.zoom
-            let screenY = Double(viewSize.height) / 2 + (position.y - camera.center.y) * camera.zoom
-            let dx = Double(point.x) - screenX
-            let dy = Double(point.y) - screenY
+            guard let projected = projection.project(nodeID: node.id) else { continue }
+            let dx = Double(point.x) - projected.point.x
+            let dy = Double(point.y) - projected.point.y
             let distance = (dx * dx + dy * dy).squareRoot()
-            let radius = Self.hitRadius(for: node) + 6
+            let depthScale = spatialMode ? min(1.7, max(0.65, projected.scale)) : 1
+            let radius = Self.hitRadius(for: node) * depthScale + 6
             guard distance <= radius else { continue }
-            if best == nil || distance < best!.distance {
-                best = (node, distance)
+            let depth = projected.depth
+            if best == nil
+                || distance < best!.distance - 0.5
+                || (abs(distance - best!.distance) <= 0.5 && depth < best!.depth) {
+                best = (node, distance, depth)
             }
         }
         return best?.node

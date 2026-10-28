@@ -112,6 +112,8 @@ struct AppCommands: Commands {
 
             Divider()
 
+            Toggle("3D Perspective", isOn: $model.is3D)
+                .keyboardShortcut("3", modifiers: .command)
             Toggle("Show Tags", isOn: $model.showTags)
             Toggle("Show Labels", isOn: $model.showLabels)
             Toggle("Ambient Motion", isOn: $model.motionEnabled)

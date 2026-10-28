@@ -56,6 +56,7 @@ struct HelpView: View {
                         "03", "INTERACTION",
                         lines: [
                             ("PAN / ZOOM", "Drag to pan. Pinch on the trackpad to zoom. Use the + / − and scope controls in the map corner."),
+                            ("3D SPACE", "Press ⌘3 or use the 2D/3D control in the map corner. Drag to orbit, Shift-drag to pan, and pinch or use + / − to move the camera."),
                             ("INSPECT", "Click any conversation node or thread in the sidebar to open its transcript."),
                             ("TAGS", "Shared keyword nodes link conversations across providers. Click one to see every thread behind it."),
                             ("FILTERS", "Combine source toggles, a time window, and a text query. The map rebuilds instantly.")
@@ -69,6 +70,7 @@ struct HelpView: View {
                             key("⌘F", "SEARCH")
                             key("⌘0", "FIT")
                             key("⌘R", "RELOAD")
+                            key("⌘3", "3D")
                             key("ESC", "CLOSE")
                         }
                     }

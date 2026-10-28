@@ -6,6 +6,10 @@ A futuristic, local-first mind map for the conversations you have with different
 
 ![MINDME inspector](MindMap/Docs/inspector.jpg)
 
+The same constellation in spatial mode:
+
+![MINDME 3D perspective](MindMap/Docs/spatial.jpg)
+
 ## What it does
 
 - **Loads real conversations** — ChatGPT `conversations.json`, Google Takeout Gemini Apps activity, Claude `conversations.json`, HTML Takeout pages (best effort), the local OpenCode SQLite library, and a documented generic schema.
@@ -14,6 +18,7 @@ A futuristic, local-first mind map for the conversations you have with different
 - **Connects conversations** through shared keyword tags, creating bridges across providers without merging the underlying threads.
 - **Inspects everything** — select a node to read the transcript, see metadata, jump to the source in the browser, or click a tag to isolate every conversation behind it.
 - **Feels alive** — an animated force-directed constellation with neon HUD panels, energy pulses along active paths, a minimap, and an animated camera.
+- **2D or 3D** — flip the map into a spatial perspective with a z-axis, depth-sorted nodes, a perspective floor, and an orbit camera. Drag to orbit, Shift-drag to pan, pinch or use +/− to zoom.
 - **Stays on your Mac** — no network calls, no accounts, no telemetry. Data is normalized into `~/Library/Application Support/MindMap/library.json`.
 
 A curated **demo dataset** is generated on first launch so the map is explorable before importing anything. Demo threads are labelled and can be cleared with one click; the first real import clears them automatically.
@@ -88,7 +93,7 @@ The synthetic demo archive remains available at any time via **File → Load Dem
 }
 ```
 
-`provider` accepts `chatgpt`, `gemini`, `claude`, or anything else (shown as *Other*). If `provider` is omitted, MINDME infers it from the filename when possible.
+`provider` accepts `chatgpt`, `gemini`, `claude`, `opencode`, or anything else (shown as *Other*). If `provider` is omitted, MINDME infers it from the filename when possible.
 
 ## Reading the map
 
@@ -102,13 +107,18 @@ Interaction:
 
 | Action | Result |
 | --- | --- |
-| Drag / pinch | Pan / zoom (trackpad magnify or the +/- controls) |
+| Drag / pinch (2D) | Pan / zoom (trackpad magnify or the +/- controls) |
+| **⌘3** or the **2D/3D** map control | Toggle the spatial perspective |
+| Drag (3D) | Orbit the camera around the root |
+| **Shift**-drag (3D) | Pan the camera target across the scene |
+| Pinch / +− (3D) | Move the camera closer or farther |
 | Click a node | Highlight its path and open the inspector |
 | Click a thread in the sidebar | Jump to its constellation and open the transcript |
 | Click a tag chip in the inspector | Isolate every thread behind that tag |
 | **⌘0** | Fit the whole map |
 | **⌘F** | Focus the search field |
 | **⌘I** | Import exports |
+| **⌘3** | Toggle 3D perspective |
 | **⌘R** | Reload the local library |
 | **Esc** | Deselect / close the inspector |
 
@@ -119,9 +129,10 @@ MindMap/
 ├── App/                     SwiftUI app (macOS)
 │   ├── MindMapApp.swift     app lifecycle, menus
 │   ├── AppModel.swift       library, filters, import orchestration
-│   ├── GraphEngine.swift    simulation clock, camera, hit testing, render throttling
-│   ├── MapRenderer.swift    Canvas renderer (nodes, edges, labels, glows)
-│   ├── GraphCanvasView.swift gestures, minimap, hover cards, empty state
+│   ├── GraphEngine.swift    simulation clock, 2D/3D cameras, hit testing, render throttling
+│   ├── Perspective.swift    perspective camera, projection, 3D fit
+│   ├── MapRenderer.swift    Canvas renderer (2D/3D nodes, edges, labels, depth)
+│   ├── GraphCanvasView.swift gestures, minimap, orbit gizmo, hover cards, empty state
 │   ├── SidebarView.swift    filter matrix
 │   ├── DetailPanelView.swift thread/cluster inspector
 │   └── Theme.swift          HUD design system
@@ -129,12 +140,12 @@ MindMap/
     ├── Models/              ConversationThread, ChatMessage, Provider, ThreadLibrary
     ├── Import/              format sniffing + ChatGPT/Gemini/Claude/OpenCode/generic parsers
     ├── Analysis/            keyword extraction + topic clustering
-    ├── Graph/               graph builder, deterministic anchors, force layout
+    ├── Graph/               graph builder, 2D anchors/force layout, 3D anchors
     ├── Store/               local JSON persistence
     └── Demo/                deterministic demo archive
 ```
 
-**Performance notes:** the force simulation runs at 60 Hz only while settling (about six seconds), then the renderer drops to a 10 fps ambient clock. All node sizes and labels are drawn in screen space so zoom changes spacing but never legibility, and the canvas only publishes a frame when something actually changed. Toggle **MOTION** off in the sidebar (or *Map → Ambient Motion*) for an essentially static, near-zero-idle-CPU map.
+**Performance notes:** the 2D force simulation runs at 60 Hz only while settling (about six seconds), then the renderer drops to a 10 fps ambient clock. The 3D layout is deterministic and static; orbiting and projecting it is cheap, and the same throttle applies. All node sizes and labels are drawn in screen space so zoom changes spacing but never legibility, and the canvas only publishes a frame when something actually changed. Toggle **MOTION** off in the sidebar (or *Map → Ambient Motion*) for an essentially static, near-zero-idle-CPU map.
 
 **Privacy:** there is no networking code in the app. Export files and the OpenCode database are parsed locally and normalized into a JSON library in Application Support. Use *File → Reveal Library in Finder* to inspect or delete it.
 

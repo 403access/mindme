@@ -177,6 +177,28 @@ final class LayoutTests: XCTestCase {
         }
     }
 
+    func testSpatialLayoutIsFiniteAndDeterministic() {
+        let demo = DemoData.make(now: Date(timeIntervalSince1970: 1_780_000_000))
+        let graph = GraphBuilder.build(library: demo, filters: .default)
+        let anchors = GraphLayout3D.anchors(for: graph)
+        XCTAssertEqual(anchors.count, graph.nodes.count)
+        XCTAssertEqual(anchors["root"], .zero)
+
+        var zValues = Set<Int>()
+        for node in graph.nodes {
+            let anchor = try! XCTUnwrap(anchors[node.id])
+            XCTAssertTrue(anchor.x.isFinite)
+            XCTAssertTrue(anchor.y.isFinite)
+            XCTAssertTrue(anchor.z.isFinite)
+            if node.kind != .root {
+                XCTAssertGreaterThan(anchor.length, 20)
+            }
+            zValues.insert(Int(anchor.z.rounded()))
+        }
+        XCTAssertGreaterThan(zValues.count, 4)
+        XCTAssertEqual(anchors, GraphLayout3D.anchors(for: graph))
+    }
+
     func testLayoutIsDeterministic() {
         let demo = DemoData.make(now: Date(timeIntervalSince1970: 1_780_000_000))
         let graph = GraphBuilder.build(library: demo, filters: .default)

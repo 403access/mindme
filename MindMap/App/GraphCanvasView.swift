@@ -10,6 +10,7 @@ struct GraphCanvasView: View {
     @State private var dragOrigin: CGPoint?
     @State private var lastTranslation: CGSize = .zero
     @State private var didPan = false
+    @State private var dragPans = true
     @State private var lastMagnification: CGFloat = 1
     @State private var cursorIsHand = false
 
@@ -23,7 +24,10 @@ struct GraphCanvasView: View {
                     let renderer = MapRenderer(
                         graph: model.graph,
                         positions: engine.frame.positions,
+                        positions3D: engine.frame.positions3D,
                         camera: engine.frame.camera,
+                        camera3D: engine.frame.camera3D,
+                        modeBlend: engine.frame.modeBlend,
                         size: canvasSize,
                         time: engine.frame.time,
                         selectedNodeID: model.selectedNodeID,
@@ -90,7 +94,10 @@ struct GraphCanvasView: View {
             }
             .onChange(of: size) { _, newSize in
                 engine.viewSize = newSize
-                if engine.autoFramed, !model.graph.isEmpty {
+                guard !model.graph.isEmpty else { return }
+                if engine.spatialMode {
+                    if engine.spatialAutoFramed { engine.requestFit() }
+                } else if engine.autoFramed {
                     engine.requestFit()
                 }
             }
@@ -111,7 +118,7 @@ struct GraphCanvasView: View {
                     .fill(HUD.lime)
                     .frame(width: 4.5, height: 4.5)
                     .shadow(color: HUD.lime.opacity(0.9), radius: 4)
-                Text(model.grouping == .provider ? "SOURCE TOPOLOGY" : (model.grouping == .topic ? "TOPIC CONSTELLATIONS" : "TEMPORAL SHELLS"))
+                Text(model.is3D ? "SPATIAL TOPOLOGY" : (model.grouping == .provider ? "SOURCE TOPOLOGY" : (model.grouping == .topic ? "TOPIC CONSTELLATIONS" : "TEMPORAL SHELLS")))
                     .font(HUDFont.micro(8))
                     .tracking(1.4)
                     .foregroundStyle(HUD.textSoft)
@@ -170,6 +177,30 @@ struct GraphCanvasView: View {
 
         // Camera controls, top-right
         VStack(spacing: 7) {
+            Button {
+                model.toggle3D()
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "cube")
+                        .font(.system(size: 8.5, weight: .semibold))
+                    Text(model.is3D ? "3D" : "2D")
+                        .font(HUDFont.micro(7.5))
+                        .tracking(0.4)
+                }
+                .foregroundStyle(model.is3D ? HUD.accent : HUD.textSoft)
+                .frame(width: 42, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(model.is3D ? HUD.accent.opacity(0.12) : Color.white.opacity(0.02))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .strokeBorder(model.is3D ? HUD.accent.opacity(0.45) : HUD.hairline, lineWidth: 0.8)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+            .help("Toggle 3D perspective  ⌘3")
+
             HUDIconButton(systemName: "plus", help: "Zoom in") {
                 zoom(by: 1.22, at: CGPoint(x: size.width / 2, y: size.height / 2))
             }
@@ -196,10 +227,27 @@ struct GraphCanvasView: View {
             HStack {
                 Spacer()
                 HStack(spacing: 7) {
-                    Text("\(Int((engine.frame.camera.zoom * 100).rounded()))%")
-                        .font(HUDFont.micro(8.5))
-                        .tracking(0.6)
-                        .foregroundStyle(HUD.textSoft)
+                    if model.is3D {
+                        Text("3D")
+                            .font(HUDFont.micro(8.5))
+                            .tracking(0.8)
+                            .foregroundStyle(HUD.accent.opacity(0.9))
+                        Rectangle().fill(HUD.hairline).frame(width: 1, height: 10)
+                        Text("DIST \(Int(engine.frame.camera3D.distance))")
+                            .font(HUDFont.micro(8))
+                            .tracking(0.4)
+                            .foregroundStyle(HUD.textSoft)
+                        Rectangle().fill(HUD.hairline).frame(width: 1, height: 10)
+                        Text("\(Int(engine.frame.camera3D.yaw * 180 / .pi))° / \(Int(engine.frame.camera3D.pitch * 180 / .pi))°")
+                            .font(HUDFont.micro(8))
+                            .tracking(0.4)
+                            .foregroundStyle(HUD.muted)
+                    } else {
+                        Text("\(Int((engine.frame.camera.zoom * 100).rounded()))%")
+                            .font(HUDFont.micro(8.5))
+                            .tracking(0.6)
+                            .foregroundStyle(HUD.textSoft)
+                    }
                     Rectangle().fill(HUD.hairline).frame(width: 1, height: 10)
                     Text(engine.frame.isSettling ? "\(engine.frame.fps) FPS" : "ECO")
                         .font(HUDFont.micro(8))
@@ -215,14 +263,25 @@ struct GraphCanvasView: View {
             }
         }
 
-        // Minimap
-        MinimapView(model: model, engine: engine)
-            .frame(width: 154, height: 104)
-            .padding(14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+        // Minimap (2D) or orbit gizmo (3D)
+        Group {
+            if model.is3D {
+                SpatialGizmo(engine: engine)
+            } else {
+                MinimapView(model: model, engine: engine)
+            }
+        }
+        .frame(width: 154, height: 104)
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
 
         // Legend, bottom-left
         HStack(spacing: 12) {
+            Text(model.is3D ? "DRAG ORBIT · ⇧DRAG PAN · PINCH ZOOM" : "HOVER TO IDENTIFY")
+                .font(HUDFont.micro(7))
+                .tracking(0.9)
+                .foregroundStyle(model.is3D ? HUD.accent.opacity(0.7) : HUD.dim.opacity(0.7))
+            Rectangle().fill(HUD.hairline).frame(width: 1, height: 8)
             ForEach(Provider.allCases, id: \.self) { provider in
                 if model.providers.contains(provider), model.providerCount(provider) > 0 {
                     HStack(spacing: 4) {
@@ -272,6 +331,7 @@ struct GraphCanvasView: View {
                     dragOrigin = value.startLocation
                     lastTranslation = .zero
                     didPan = false
+                    dragPans = !engine.spatialMode || NSEvent.modifierFlags.contains(.shift)
                 }
                 let total = hypot(value.translation.width, value.translation.height)
                 if total > 3 { didPan = true }
@@ -280,7 +340,11 @@ struct GraphCanvasView: View {
                     width: value.translation.width - lastTranslation.width,
                     height: value.translation.height - lastTranslation.height
                 )
-                engine.pan(byScreenTranslation: delta)
+                if engine.spatialMode, !dragPans {
+                    engine.orbit(byScreenTranslation: delta)
+                } else {
+                    engine.pan(byScreenTranslation: delta)
+                }
                 lastTranslation = value.translation
             }
             .onEnded { value in
@@ -539,6 +603,84 @@ struct MinimapView: View {
                     }
             )
         }
+    }
+}
+
+// MARK: - Spatial gizmo
+
+struct SpatialGizmo: View {
+    @ObservedObject var engine: GraphEngine
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+            Canvas { context, _ in
+                let rect = CGRect(origin: .zero, size: size)
+                context.fill(
+                    Path(roundedRect: rect, cornerRadius: 10),
+                    with: .color(Color(hex: 0x050A12).opacity(0.88))
+                )
+                context.stroke(
+                    Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 10),
+                    with: .color(HUD.accent.opacity(0.25)),
+                    lineWidth: 0.8
+                )
+
+                let camera = engine.frame.camera3D
+                let center = CGPoint(x: size.width / 2, y: size.height / 2 - 5)
+                let axisLength: CGFloat = 26
+
+                func drawAxis(_ direction: Vec3, color: Color, label: String) {
+                    let x = direction.dot(camera.right)
+                    let y = -direction.dot(camera.up)
+                    let length = max(0.001, hypot(x, y))
+                    let end = CGPoint(
+                        x: center.x + x / length * axisLength,
+                        y: center.y + y / length * axisLength
+                    )
+                    var path = Path()
+                    path.move(to: center)
+                    path.addLine(to: end)
+                    context.stroke(path, with: .color(color.opacity(0.75)), lineWidth: 1.2)
+                    context.fill(
+                        Path(ellipseIn: CGRect(x: end.x - 2.5, y: end.y - 2.5, width: 5, height: 5)),
+                        with: .color(color)
+                    )
+                    let text = context.resolve(
+                        Text(label)
+                            .font(HUDFont.micro(6.5))
+                            .foregroundColor(color.opacity(0.9))
+                    )
+                    context.draw(text, at: CGPoint(x: end.x + 6, y: end.y - 5), anchor: .leading)
+                }
+
+                drawAxis(Vec3(1, 0, 0), color: HUD.magenta, label: "X")
+                drawAxis(Vec3(0, 1, 0), color: HUD.lime, label: "Y")
+                drawAxis(Vec3(0, 0, 1), color: HUD.accent, label: "Z")
+
+                let yaw = Int(camera.yaw * 180 / Double.pi)
+                let pitch = Int(camera.pitch * 180 / Double.pi)
+                let title = context.resolve(
+                    Text("ORBIT")
+                        .font(HUDFont.micro(7.5))
+                        .foregroundColor(HUD.textSoft)
+                        .tracking(1.2)
+                )
+                context.draw(title, at: CGPoint(x: 10, y: 11), anchor: .leading)
+                let angles = context.resolve(
+                    Text("YAW \(yaw)°  PITCH \(pitch)°")
+                        .font(HUDFont.micro(6.4))
+                        .foregroundColor(HUD.muted)
+                        .tracking(0.4)
+                )
+                context.draw(angles, at: CGPoint(x: 10, y: size.height - 13), anchor: .leading)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                engine.requestFit()
+            }
+        }
+        .help("3D orientation. Click to refit.")
     }
 }
 

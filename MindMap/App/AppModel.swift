@@ -82,6 +82,9 @@ final class AppModel: ObservableObject {
     // View toggles
     @Published var showLabels: Bool = true
     @Published var motionEnabled: Bool = true
+    @Published var is3D: Bool = false {
+        didSet { engine.setSpatialMode(is3D) }
+    }
 
     // Selection & chrome
     @Published var selectedNodeID: String?
@@ -121,8 +124,7 @@ final class AppModel: ObservableObject {
         rebuild(refit: true)
         if library.hasDemoData {
             lastImportSummary = "DEMO SIGNAL"
-        }
-    }
+        }    }
 
     func reloadLibrary() {
         do {
@@ -265,6 +267,10 @@ final class AppModel: ObservableObject {
         searchText = ""
         showTags = true
         selectedNodeID = nil
+    }
+
+    func toggle3D() {
+        is3D.toggle()
     }
 
     // MARK: - Import
