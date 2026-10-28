@@ -102,11 +102,18 @@ public enum KeywordExtractor {
             guard token.contains(where: \.isLetter) else { continue }
             guard !stopwords.contains(token), !weakTerms.contains(token) else { continue }
             guard !token.allSatisfy(\.isNumber) else { continue }
-            // Very light singularization, enough to merge "agents"/"agent".
-            if token.count > 4, token.hasSuffix("s"),
-               !token.hasSuffix("ss"), !token.hasSuffix("us"), !token.hasSuffix("is"),
-               !token.hasSuffix("as"), !token.hasSuffix("os"), !token.hasSuffix("ics"),
-               !token.hasSuffix("ous") {
+            // Very light singularization, enough to merge "agents"/"agent",
+            // "tomatoes"/"tomato" and "varieties"/"variety".
+            if token.count > 4, token.hasSuffix("ies") {
+                token = String(token.dropLast(3)) + "y"
+            } else if token.count > 4,
+                      token.hasSuffix("oes") || token.hasSuffix("ches")
+                        || token.hasSuffix("shes") || token.hasSuffix("xes") {
+                token.removeLast(2)
+            } else if token.count > 4, token.hasSuffix("s"),
+                      !token.hasSuffix("ss"), !token.hasSuffix("us"), !token.hasSuffix("is"),
+                      !token.hasSuffix("as"), !token.hasSuffix("os"), !token.hasSuffix("ics"),
+                      !token.hasSuffix("ous") {
                 token.removeLast()
             }
             tokens.append(token)
@@ -194,6 +201,25 @@ public enum KeywordExtractor {
             return $0.term < $1.term
         }
 
+        return Array(ranked.prefix(limit))
+    }
+
+    /// Keyword ranking for a raw span (a segment, a title, a query) using an
+    /// IDF table built from the whole library. Unlike the thread variant it
+    /// does not assume a title, which keeps region labels honest.
+    public static func keywords(inText text: String, idf: [String: Double], limit: Int = 5) -> [Keyword] {
+        var counts: [String: Int] = [:]
+        for token in tokenize(text) {
+            counts[token, default: 0] += 1
+        }
+        let ranked = counts.map { term, count -> Keyword in
+            let frequency = 1.0 + log(Double(min(count, 8)))
+            return Keyword(term: term, score: frequency * (idf[term] ?? 1.0))
+        }
+        .sorted {
+            if abs($0.score - $1.score) > 0.0001 { return $0.score > $1.score }
+            return $0.term < $1.term
+        }
         return Array(ranked.prefix(limit))
     }
 

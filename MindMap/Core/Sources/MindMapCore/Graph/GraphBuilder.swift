@@ -7,6 +7,7 @@ public enum GraphBuilder {
     public static func build(
         library: ThreadLibrary,
         filters: GraphFilters,
+        topicAnalysis: TopicAnalysis? = nil,
         now: Date = Date()
     ) -> MindMapGraph {
         let providerFiltered = library.threads.filter { filters.matches($0) }
@@ -45,6 +46,7 @@ public enum GraphBuilder {
                     provider: provider,
                     colorSeed: provider.order,
                     priority: provider.order,
+                    parentID: nil,
                     threadIDs: threads.map(\.id)
                 )
                 groups.append(spec)
@@ -65,6 +67,7 @@ public enum GraphBuilder {
                     provider: nil,
                     colorSeed: offset,
                     priority: offset,
+                    parentID: nil,
                     threadIDs: cluster.threadIDs
                 )
                 groups.append(spec)
@@ -80,10 +83,105 @@ public enum GraphBuilder {
                     provider: nil,
                     colorSeed: 9,
                     priority: 99,
+                    parentID: nil,
                     threadIDs: leftovers.map(\.id)
                 )
                 groups.append(spec)
                 for thread in leftovers { groupIDByThread[thread.id] = spec.id }
+            }
+
+        case .region:
+            let analysis = regionAnalysis(for: limited, provided: topicAnalysis)
+            let roots = analysis.taxonomy.roots
+            var threadsByRoot: [String: [String]] = [:]
+            var threadsByLeaf: [String: [String]] = [:]
+            for thread in limited {
+                let profile = analysis.profiles[thread.id]
+                let leafID = profile?.primaryTopicID ?? "emerging/misc"
+                let rootID = analysis.taxonomy.node(id: leafID)?.parentID
+                    ?? profile?.primaryRegionID
+                    ?? "emerging"
+                threadsByLeaf[leafID, default: []].append(thread.id)
+                threadsByRoot[rootID, default: []].append(thread.id)
+            }
+
+            for (rootIndex, root) in roots.enumerated() {
+                guard let rootThreads = threadsByRoot[root.id], !rootThreads.isEmpty else { continue }
+                let children = analysis.taxonomy.children(of: root.id)
+                    .filter { !(threadsByLeaf[$0.id] ?? []).isEmpty }
+                let regionID = "region:\(root.id)"
+                groups.append(GroupSpec(
+                    id: regionID,
+                    label: root.label.uppercased(),
+                    subtitle: "\(TextTools.count(rootThreads.count, singular: "THREAD", plural: "THREADS")) · \(TextTools.count(children.count, singular: "REGION", plural: "REGIONS"))",
+                    provider: nil,
+                    colorSeed: rootIndex,
+                    priority: rootIndex,
+                    parentID: nil,
+                    threadIDs: [],
+                    displayWeight: Double(rootThreads.count)
+                ))
+
+                // A domain with threads but no classified child still needs a
+                // visible sub-region; the fallback leaf handles this normally.
+                let visibleChildren: [(id: String, label: String, threadIDs: [String])]
+                if children.isEmpty {
+                    visibleChildren = [("\(root.id)/general", "General", rootThreads)]
+                } else {
+                    visibleChildren = children.map { child in
+                        (child.id, child.label, threadsByLeaf[child.id] ?? [])
+                    }
+                }
+
+                for child in visibleChildren {
+                    let childID = "region:\(child.id)"
+                    groups.append(GroupSpec(
+                        id: childID,
+                        label: child.label.uppercased(),
+                        subtitle: TextTools.count(child.threadIDs.count, singular: "THREAD", plural: "THREADS"),
+                        provider: nil,
+                        colorSeed: rootIndex,
+                        priority: rootIndex,
+                        parentID: regionID,
+                        threadIDs: child.threadIDs
+                    ))
+                    for threadID in child.threadIDs {
+                        groupIDByThread[threadID] = childID
+                    }
+                }
+            }
+
+            // Defensive: a thread whose profile referenced an unknown topic
+            // still needs a home on the map.
+            let assignedRegion = Set(groupIDByThread.keys)
+            let orphans = limited.filter { !assignedRegion.contains($0.id) }
+            if !orphans.isEmpty {
+                let regionID = "region:emerging"
+                if !groups.contains(where: { $0.id == regionID }) {
+                    groups.append(GroupSpec(
+                        id: regionID,
+                        label: "EMERGING",
+                        subtitle: TextTools.count(orphans.count, singular: "THREAD", plural: "THREADS"),
+                        provider: nil,
+                        colorSeed: roots.count,
+                        priority: 99,
+                        parentID: nil,
+                        threadIDs: [],
+                        displayWeight: Double(orphans.count)
+                    ))
+                }
+                let childID = "region:emerging/misc"
+                groups.append(GroupSpec(
+                    id: childID,
+                    label: "MISCELLANEOUS",
+                    subtitle: TextTools.count(orphans.count, singular: "THREAD", plural: "THREADS"),
+                    provider: nil,
+                    colorSeed: roots.count,
+                    priority: 99,
+                    parentID: regionID,
+                    threadIDs: orphans.map(\.id)
+                ))
+                for thread in orphans { groupIDByThread[thread.id] = childID }
             }
 
         case .era:
@@ -96,6 +194,7 @@ public enum GraphBuilder {
                     provider: nil,
                     colorSeed: offset,
                     priority: offset,
+                    parentID: nil,
                     threadIDs: bucket.threadIDs
                 )
                 groups.append(spec)
@@ -144,10 +243,26 @@ public enum GraphBuilder {
                 label: group.label,
                 subtitle: group.subtitle,
                 provider: group.provider,
-                weight: Double(group.threadIDs.count),
+                parentID: group.parentID,
+                weight: group.displayWeight ?? Double(group.threadIDs.count),
                 colorSeed: group.provider?.order ?? (group.colorSeed + 1) % 12
             ))
-            edges.append(MindMapEdge(source: "root", target: group.id, kind: .rootGroup, weight: Double(group.threadIDs.count)))
+            let edgeWeight = Double(max(1, group.threadIDs.count))
+            if let parentID = group.parentID {
+                edges.append(MindMapEdge(
+                    source: parentID,
+                    target: group.id,
+                    kind: .regionGroup,
+                    weight: edgeWeight
+                ))
+            } else {
+                edges.append(MindMapEdge(
+                    source: "root",
+                    target: group.id,
+                    kind: .rootGroup,
+                    weight: max(edgeWeight, group.displayWeight ?? 0)
+                ))
+            }
 
             for threadID in group.threadIDs {
                 guard let thread = limited.first(where: { $0.id == threadID }) else { continue }
@@ -244,7 +359,10 @@ public enum GraphBuilder {
         var provider: Provider?
         var colorSeed: Int
         var priority: Int
+        var parentID: String?
         var threadIDs: [String]
+        /// Weight for container groups that do not own thread nodes directly.
+        var displayWeight: Double? = nil
     }
 
     private struct EraBucket {
@@ -252,6 +370,19 @@ public enum GraphBuilder {
         var label: String
         var threadIDs: [String]
         var sortDate: Date
+    }
+
+    /// Region grouping needs the topic pipeline. The app passes a cached,
+    /// background-built analysis; tests and previews get a deterministic
+    /// inline run for the filtered threads only.
+    private static func regionAnalysis(
+        for threads: [ConversationThread],
+        provided: TopicAnalysis?
+    ) -> TopicAnalysis {
+        if let provided, !provided.profiles.isEmpty {
+            return provided
+        }
+        return TopicPipeline().analyze(ThreadLibrary(threads: threads))
     }
 
     private static func rootNode(count: Int, groups: Int) -> MindMapNode {

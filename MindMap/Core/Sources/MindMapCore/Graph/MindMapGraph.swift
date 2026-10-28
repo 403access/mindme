@@ -5,6 +5,7 @@ import Foundation
 public enum GroupingMode: String, Codable, CaseIterable, Identifiable, Sendable {
     case provider
     case topic
+    case region
     case era
 
     public var id: String { rawValue }
@@ -13,7 +14,17 @@ public enum GroupingMode: String, Codable, CaseIterable, Identifiable, Sendable 
         switch self {
         case .provider: return "PROVIDER"
         case .topic: return "TOPIC"
+        case .region: return "REGION"
         case .era: return "ERA"
+        }
+    }
+
+    public var title: String {
+        switch self {
+        case .provider: return "Provider"
+        case .topic: return "Topic"
+        case .region: return "Region"
+        case .era: return "Era"
         }
     }
 }
@@ -81,6 +92,8 @@ public struct MindMapNode: Identifiable, Hashable, Sendable {
     public var groupID: String?
     public var threadID: String?
     public var tag: String?
+    /// Parent group for hierarchical groupings (`region`). `nil` for roots.
+    public var parentID: String?
     public var weight: Double
     public var colorSeed: Int
 
@@ -93,6 +106,7 @@ public struct MindMapNode: Identifiable, Hashable, Sendable {
         groupID: String? = nil,
         threadID: String? = nil,
         tag: String? = nil,
+        parentID: String? = nil,
         weight: Double = 1,
         colorSeed: Int = 0
     ) {
@@ -104,6 +118,7 @@ public struct MindMapNode: Identifiable, Hashable, Sendable {
         self.groupID = groupID
         self.threadID = threadID
         self.tag = tag
+        self.parentID = parentID
         self.weight = weight
         self.colorSeed = colorSeed
     }
@@ -111,6 +126,7 @@ public struct MindMapNode: Identifiable, Hashable, Sendable {
 
 public enum EdgeKind: String, Codable, Hashable, Sendable {
     case rootGroup
+    case regionGroup
     case groupThread
     case threadTag
 }
@@ -197,6 +213,24 @@ public struct MindMapGraph: Sendable {
     public var threadNodes: [MindMapNode] { nodes.filter { $0.kind == .thread } }
     public var tagNodes: [MindMapNode] { nodes.filter { $0.kind == .tag } }
 
+    public var rootGroups: [MindMapNode] { groupNodes.filter { $0.parentID == nil } }
+
+    public func childGroups(of id: String) -> [MindMapNode] {
+        groupNodes.filter { $0.parentID == id }
+    }
+
+    /// All group IDs in the subtree rooted at `id`, including `id` itself.
+    public func descendantGroupIDs(of id: String) -> Set<String> {
+        var result: Set<String> = [id]
+        var queue = [id]
+        while let current = queue.popLast() {
+            for child in childGroups(of: current) where result.insert(child.id).inserted {
+                queue.append(child.id)
+            }
+        }
+        return result
+    }
+
     public func node(forThread threadID: String) -> MindMapNode? {
         nodes.first { $0.threadID == threadID }
     }
@@ -227,14 +261,28 @@ public struct MindMapGraph: Sendable {
             return Set(nodes.map(\.id))
         case .group:
             var set: Set<String> = [node.id]
-            for edge in edges where edge.source == node.id || edge.target == node.id {
-                let other = edge.source == node.id ? edge.target : edge.source
-                set.insert(other)
-                if edge.kind == .groupThread {
-                    for tagEdge in edges where tagEdge.source == other || tagEdge.target == other {
-                        set.insert(tagEdge.source == other ? tagEdge.target : tagEdge.source)
+            var queue = [node.id]
+            var visited: Set<String> = [node.id]
+            while let current = queue.popLast() {
+                for edge in edges where edge.source == current || edge.target == current {
+                    let other = edge.source == current ? edge.target : edge.source
+                    set.insert(other)
+                    switch self.node(id: other)?.kind {
+                    case .group:
+                        if visited.insert(other).inserted { queue.append(other) }
+                    case .thread:
+                        for tagEdge in edges where tagEdge.source == other || tagEdge.target == other {
+                            set.insert(tagEdge.source == other ? tagEdge.target : tagEdge.source)
+                        }
+                    default:
+                        break
                     }
                 }
+            }
+            var parentID = node.parentID
+            while let current = parentID, let parent = self.node(id: current) {
+                set.insert(parent.id)
+                parentID = parent.parentID
             }
             if let root = rootNode { set.insert(root.id) }
             return set

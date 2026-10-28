@@ -98,6 +98,10 @@ final class AppModel: ObservableObject {
     @Published private(set) var lastImportSummary: String?
     @Published private(set) var lastImportDate: Date?
 
+    /// Segment-level topic analysis for the whole library. Built once per
+    /// archive change and cached in Application Support as `topics.json`.
+    @Published private(set) var topicAnalysis: TopicAnalysis = .empty
+
     /// Bumped on every graph rebuild. Lets view-layer caches detect a new
     /// graph without hashing the node set on each render.
     private(set) var graphRevision = 0
@@ -107,7 +111,10 @@ final class AppModel: ObservableObject {
         didSet { rebuild() }
     }
     @Published var grouping: GroupingMode = .provider {
-        didSet { rebuild(refit: true) }
+        didSet {
+            if grouping == .region { refreshTopicAnalysis() }
+            rebuild(refit: true)
+        }
     }
     @Published var timeWindow: TimeWindow = .all {
         didSet { rebuild() }
@@ -121,6 +128,9 @@ final class AppModel: ObservableObject {
 
     // View toggles
     @Published var showLabels: Bool = true
+    /// Draw each hub's real name inside the node instead of the generic
+    /// "TOPIC" monogram. On by default; labels remain independently toggleable.
+    @Published var showNodeNames: Bool = true
     @Published var motionEnabled: Bool = true
     @Published var viewMode: VisualizationMode = .map {
         didSet {
@@ -143,6 +153,7 @@ final class AppModel: ObservableObject {
 
     let engine = GraphEngine()
     private let store = ThreadStore()
+    private let topicStore = TopicStore()
     private var searchTask: Task<Void, Never>?
     private var toastTask: Task<Void, Never>?
 
@@ -168,15 +179,20 @@ final class AppModel: ObservableObject {
             library = DemoData.make()
         }
 
+        topicStore.ensureTaxonomyFile()
+        topicAnalysis = (try? topicStore.load()) ?? .empty
+        refreshTopicAnalysis()
         rebuild(refit: true)
         if library.hasDemoData {
             lastImportSummary = "DEMO SIGNAL"
-        }    }
+        }
+    }
 
     func reloadLibrary() {
         do {
             library = store.exists ? try store.load() : DemoData.make()
             selectedNodeID = nil
+            refreshTopicAnalysis()
             rebuild(refit: true)
             showToast(
                 "Library reloaded",
@@ -217,7 +233,11 @@ final class AppModel: ObservableObject {
 
     private func rebuild(refit: Bool = false) {
         let filters = self.filters
-        graph = GraphBuilder.build(library: library, filters: filters)
+        graph = GraphBuilder.build(
+            library: library,
+            filters: filters,
+            topicAnalysis: topicAnalysis
+        )
         graphRevision &+= 1
         visibleThreads = library.threads
             .filter { filters.matches($0) }
@@ -262,7 +282,11 @@ final class AppModel: ObservableObject {
         case .thread:
             ids = node.threadID.map { [$0] } ?? []
         case .group:
-            ids = Set(graph.threadNodes.filter { $0.groupID == node.id }.compactMap(\.threadID))
+            let groupIDs = graph.descendantGroupIDs(of: node.id)
+            ids = Set(graph.threadNodes.filter { node in
+                guard let groupID = node.groupID else { return false }
+                return groupIDs.contains(groupID)
+            }.compactMap(\.threadID))
         case .tag:
             let threadNodeIDs = Set(graph.adjacency[node.id] ?? [])
             ids = Set(graph.threadNodes.filter { threadNodeIDs.contains($0.id) }.compactMap(\.threadID))
@@ -391,6 +415,7 @@ final class AppModel: ObservableObject {
         lastImportDate = Date()
         lastImportSummary = "\(counts.added) NEW · \(counts.updated) UPDATED"
         selectedNodeID = nil
+        refreshTopicAnalysis()
         rebuild(refit: true)
 
         do {
@@ -418,6 +443,7 @@ final class AppModel: ObservableObject {
         selectedNodeID = nil
         lastImportSummary = nil
         lastImportDate = nil
+        refreshTopicAnalysis()
         rebuild(refit: true)
         do {
             try store.save(library)
@@ -431,6 +457,7 @@ final class AppModel: ObservableObject {
         library.merge(DemoData.make().threads)
         library.lastImport = Date()
         selectedNodeID = nil
+        refreshTopicAnalysis()
         rebuild(refit: true)
         try? store.save(library)
         lastImportSummary = "DEMO SIGNAL"
@@ -442,11 +469,13 @@ final class AppModel: ObservableObject {
         do {
             try store.deleteLibrary()
             try store.save(.empty)
+            try? topicStore.delete()
         } catch {
             showToast("Reset failed", detail: error.localizedDescription, kind: .error)
             return
         }
         library = .empty
+        topicAnalysis = .empty
         selectedNodeID = nil
         lastImportSummary = nil
         lastImportDate = nil
@@ -478,6 +507,54 @@ final class AppModel: ObservableObject {
     func dismissToast() {
         toastTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) { toast = nil }
+    }
+
+    // MARK: - Topics
+
+    /// Rebuilds segment profiles when the archive changes. Profiles are cached
+    /// per thread content hash, so adding one conversation does not reclassify
+    /// the rest. Called synchronously on lifecycle events; the segmenter and
+    /// hashing embedder keep this in the low milliseconds per thread.
+    private func refreshTopicAnalysis(force: Bool = false) {
+        guard !library.threads.isEmpty else {
+            topicAnalysis = .empty
+            try? topicStore.save(.empty)
+            return
+        }
+        let cached = force ? nil : topicAnalysis
+        // Reloaded each time so edits to taxonomy.json are picked up by the
+        // Reclassify Topics command without a relaunch.
+        let taxonomy = topicStore.loadTaxonomy() ?? .default
+        let analysis = TopicPipeline(taxonomy: taxonomy).analyze(library, cached: cached)
+        guard force
+                || analysis.libraryHash != topicAnalysis.libraryHash
+                || analysis.profiles.count != topicAnalysis.profiles.count
+                || analysis.version != topicAnalysis.version
+                || analysis.taxonomy != topicAnalysis.taxonomy
+                || analysis.embedderID != topicAnalysis.embedderID else {
+            return
+        }
+        topicAnalysis = analysis
+        try? topicStore.save(analysis)
+    }
+
+    func reclassifyTopics() {
+        refreshTopicAnalysis(force: true)
+        rebuild(refit: true)
+        let segmentCount = topicAnalysis.profiles.values.reduce(0) { $0 + $1.segments.count }
+        showToast(
+            "Topics reclassified",
+            detail: "\(topicAnalysis.profiles.count) threads · \(segmentCount) regions",
+            kind: .success
+        )
+    }
+
+    func topicProfile(for threadID: String) -> ThreadTopicProfile? {
+        topicAnalysis.profiles[threadID]
+    }
+
+    func topicLabel(for topicID: String) -> String {
+        topicAnalysis.taxonomy.label(for: topicID)
     }
 
     // MARK: - Derived

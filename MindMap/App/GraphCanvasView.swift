@@ -38,6 +38,7 @@ struct GraphCanvasView: View {
                         selectedNodeID: model.selectedNodeID,
                         hoveredNodeID: model.hoveredNodeID,
                         showLabels: model.showLabels,
+                        showNodeNames: model.showNodeNames,
                         motion: model.motionEnabled,
                         hybridWords: hybrid,
                         focusPath: focusPath

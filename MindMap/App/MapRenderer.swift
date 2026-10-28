@@ -20,6 +20,7 @@ final class MapRenderer {
     let selectedNodeID: String?
     let hoveredNodeID: String?
     let showLabels: Bool
+    let showNodeNames: Bool
     let motion: Bool
     let hybridWords: Bool
     let focusPath: Set<String>
@@ -36,6 +37,7 @@ final class MapRenderer {
         selectedNodeID: String?,
         hoveredNodeID: String?,
         showLabels: Bool,
+        showNodeNames: Bool,
         motion: Bool,
         hybridWords: Bool,
         focusPath: Set<String>
@@ -51,6 +53,7 @@ final class MapRenderer {
         self.selectedNodeID = selectedNodeID
         self.hoveredNodeID = hoveredNodeID
         self.showLabels = showLabels
+        self.showNodeNames = showNodeNames
         self.motion = motion
         self.hybridWords = hybridWords
         self.focusPath = focusPath
@@ -499,6 +502,7 @@ final class MapRenderer {
         let bend: CGFloat
         switch edge.kind {
         case .rootGroup: bend = 0
+        case .regionGroup: bend = direction * min(20, distance * 0.06)
         case .groupThread: bend = direction * min(26, distance * 0.08)
         case .threadTag: bend = direction * min(18, distance * 0.14)
         }
@@ -690,14 +694,25 @@ final class MapRenderer {
         let inner = hexagonPath(center: point, radius: radius * 0.62, rotation: .pi / 6)
         context.stroke(inner, with: .color(color.opacity(0.28 * presence)), lineWidth: 0.6)
 
-        let monogram = node.provider?.shortName ?? "TOPIC"
+        let monogram: String
+        let monogramSize: CGFloat
+        let monogramTracking: CGFloat
+        if showNodeNames, node.provider == nil {
+            monogram = hubName(for: node)
+            monogramSize = hubNameSize(for: monogram)
+            monogramTracking = 0.15
+        } else {
+            monogram = node.provider?.shortName ?? "TOPIC"
+            monogramSize = node.provider == nil ? 7.2 : 8.3
+            monogramTracking = 0.8
+        }
         drawText(
             monogram,
             at: CGPoint(x: point.x, y: point.y),
-            font: HUDFont.label(node.provider == nil ? 7.2 : 8.3),
+            font: HUDFont.label(monogramSize),
             color: color.opacity((focused ? 1 : 0.75) * presence),
             anchor: .center,
-            tracking: 0.8,
+            tracking: monogramTracking,
             context: &context
         )
 
@@ -1149,6 +1164,20 @@ final class MapRenderer {
             at: CGPoint(x: plateRect.midX, y: plateRect.maxY - 5 - subtitleSize.height / 2),
             anchor: .center
         )
+    }
+
+    /// The word drawn inside a hub. Provider hubs keep their three-letter
+    /// source code; topic/region/era hubs show their actual name.
+    private func hubName(for node: MindMapNode) -> String {
+        if let provider = node.provider { return provider.shortName }
+        return shorten(node.label.uppercased(), limit: 12)
+    }
+
+    /// Long sub-region names (Architecture, Operations) shrink to fit the
+    /// hexagon instead of being clipped to a generic monogram.
+    private func hubNameSize(for text: String) -> CGFloat {
+        let count = max(4, text.count)
+        return max(4.8, min(7.4, 7.4 * 7.0 / CGFloat(count)))
     }
 
     private func shorten(_ text: String, limit: Int) -> String {

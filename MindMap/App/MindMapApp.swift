@@ -126,15 +126,21 @@ struct AppCommands: Commands {
             .keyboardShortcut("5", modifiers: .command)
             Toggle("Show Tags", isOn: $model.showTags)
             Toggle("Show Labels", isOn: $model.showLabels)
+            Toggle("Show Node Names", isOn: $model.showNodeNames)
             Toggle("Ambient Motion", isOn: $model.motionEnabled)
 
             Divider()
 
             Picker("Group By", selection: $model.grouping) {
                 ForEach(GroupingMode.allCases) { mode in
-                    Text(mode.label).tag(mode)
+                    Text(mode.title).tag(mode)
                 }
             }
+
+            Button("Reclassify Topics") {
+                model.reclassifyTopics()
+            }
+            .keyboardShortcut("t", modifiers: [.command, .shift])
         }
 
         CommandGroup(replacing: .help) {

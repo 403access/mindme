@@ -30,9 +30,10 @@ KeywordExtractor ──► tag nodes, topic hubs, inspector chips
 ThreadLibrary
    │  GraphFilters (providers, since, search, maxThreads)
    ▼
-GraphBuilder.build(library:filters:)        Core/Sources/MindMapCore/Graph/GraphBuilder.swift
+GraphBuilder.build(library:filters:topicAnalysis:)
    │  + KeywordExtractor.buildIndex
    │  + TopicClusterer (topic mode only)
+   │  + TopicPipeline (region mode only)     Analysis/Topics/
    ▼
 MindMapGraph { nodes, edges, stats, keywordsByThread }
    │
@@ -80,7 +81,7 @@ deterministic and unit-tested without an app running.
 | Kind | ID pattern | Drawn as | Size driver | Colour |
 | --- | --- | --- | --- | --- |
 | `root` | `root` | hexagon, layered aura | fixed | accent cyan |
-| `group` | `group:provider:*`, `group:topic:misc`, `group:era:*`, `topic:*` | ring hub, radius 23 pt | fixed radius, halo on select | provider colour or topic palette |
+| `group` | `group:provider:*`, `group:topic:misc`, `group:era:*`, `topic:*`, `region:<topicID>` | ring hub, radius 23 pt | fixed radius, halo on select | provider colour, topic palette, or region colour |
 | `thread` | `thread:<threadID>` | circle | `2.9 + min(3.6, weight × 0.95)` pt | provider colour |
 | `tag` | `tag:<slug>` | diamond | `2.4 + min(2.2, weight × 0.35)` pt | fixed blue-grey |
 
@@ -94,7 +95,8 @@ Weights:
 
 | Kind | Connects | Rest length | Spring strength | Render |
 | --- | --- | --- | --- | --- |
-| `rootGroup` | root → group | 300 | 0.28 | straight, provider tint |
+| `rootGroup` | root → region/group | 300 | 0.28 | straight, provider tint |
+| `regionGroup` | region → sub-region | 210 | 0.42 | gently curved |
 | `groupThread` | group → thread | 118 | 0.52 | gently curved |
 | `threadTag` | thread → tag | 72 | 0.34 | dashed `[1.5, 4.5]` |
 
@@ -108,7 +110,7 @@ linked through tag nodes.
 selected or hovered node:
 
 - **root** → everything
-- **group** → itself, its threads, their tags, root
+- **group** → itself, descendant groups (sub-regions), their threads and tags, root
 - **thread** → itself, its group, its tags, root
 - **tag** → itself, all threads carrying it, their groups, root
 
@@ -119,13 +121,14 @@ is what makes the selected constellation pop.
 
 ## 3. Grouping modes
 
-`GraphBuilder` (`GraphBuilder.swift:36`) supports three ways to cut the same
+`GraphBuilder` (`GraphBuilder.swift:36`) supports four ways to cut the same
 library into hubs. The mode only changes group membership, not the node set.
 
 | Mode | Hubs | Notes |
 | --- | --- | --- |
 | `provider` | one per `Provider` enum case present | hub colour = provider colour |
 | `topic` | up to `min(14, max(6, 6 + n/24))` keyword clusters + `MISCELLANY` | see below |
+| `region` | two levels: curated region → sub-region | `MindMapNode.parentID` + `regionGroup` edges |
 | `era` | time buckets | monthly under 130 days, quarterly under 4 years, yearly beyond |
 
 **Topic clustering** (`Analysis/TopicClusterer.swift`) is deterministic:
@@ -140,6 +143,31 @@ library into hubs. The mode only changes group membership, not the node set.
 
 **Era buckets** use `updatedAt`, not `createdAt`, so active threads land in the
 period they were last touched.
+
+**Region grouping** (`Analysis/Topics/`) classifies *parts* of a conversation,
+not just the whole thread:
+
+1. `ConversationSegmenter` builds prompt+reply units and cuts where hashed
+   embeddings diverge, vocabulary turns over, a time gap appears, or the prompt
+   contains an explicit cue.
+2. `TopicClassifier` scores each segment against `TopicTaxonomy.default` — a
+   curated English/German seed spine (product, technology, legal, finance,
+   design, research, operations, personal). A parent prototype includes its
+   descendants' vocabulary, so "kubernetes" still feeds Technology.
+3. `TopicPipeline.viterbi` smooths the sequence (stay free, sibling cheap,
+   cross-domain expensive).
+4. Rollup weights segments by prompt length + 25% of answer length, producing a
+   soft region distribution. A mixed project thread can be 60% technology and
+   40% legal; the map attaches it to its largest sub-region, while the inspector
+   shows every segment.
+5. Profiles live in `~/Library/Application Support/MindMap/topics.json`, keyed
+   by thread content hash and pipeline versions. Re-imports reuse unchanged
+   threads. Classification fans out across cores but writes results by index,
+   so output is byte-identical to a serial run.
+
+Low-confidence text lands in `emerging` instead of a forced region. The
+taxonomy is plain data; bump `TopicTaxonomy.default.version` when seeds change
+to invalidate cached profiles.
 
 ---
 
@@ -540,7 +568,7 @@ essentially static map with near-zero idle CPU.
 
 ## 12. Testing and determinism
 
-`make test` runs 22 core tests (`Core/Tests/MindMapCoreTests/`). Relevant to the
+`make test` runs the core suite (`Core/Tests/MindMapCoreTests/`). Relevant to the
 visualization:
 
 - `testAnchorsAndSimulationRemainFinite` — no NaN/∞ after relaxation
@@ -549,6 +577,9 @@ visualization:
 - `testTopicGroupingProducesClusters`
 - `testTagGraph`, `testFocusPath`
 - `testKeywordsFavorTitleAndTopics`, `testStopwordsAndTokens`
+- `testDomainsAreClassifiedAtRegionLevel`, `testSegmentsSplitWhenTopicShifts`
+- `testRegionGroupingBuildsHierarchy`, `testDemoArchiveProducesRegionHierarchy`
+- `testPipelineIsDeterministic`, `testCachedProfilesAreReused`
 
 Determinism is a design constraint, not an accident: `StableID.hash` replaces
 `hashValue` (which is seeded per process) everywhere visual output depends on

@@ -35,6 +35,19 @@ struct DetailPanelView: View {
 
     // MARK: - Header
 
+    private var headerLabel: String {
+        switch node.kind {
+        case .thread: return "THREAD INSPECTOR"
+        case .tag: return "TAG INSPECTOR"
+        case .root: return "NEXUS INSPECTOR"
+        case .group:
+            if model.grouping == .region {
+                return node.parentID == nil ? "REGION INSPECTOR" : "SUB-REGION INSPECTOR"
+            }
+            return "CLUSTER INSPECTOR"
+        }
+    }
+
     private var header: some View {
         HStack(spacing: 8) {
             HStack(spacing: 6) {
@@ -42,7 +55,7 @@ struct DetailPanelView: View {
                     .fill(HUD.color(for: node))
                     .frame(width: 2, height: 12)
                     .shadow(color: HUD.color(for: node).opacity(0.8), radius: 4)
-                Text(node.kind == .thread ? "THREAD INSPECTOR" : (node.kind == .tag ? "TAG INSPECTOR" : "CLUSTER INSPECTOR"))
+                Text(headerLabel)
                     .font(HUDFont.micro(8))
                     .tracking(1.5)
                     .foregroundStyle(HUD.textSoft)
@@ -132,6 +145,10 @@ struct DetailPanelView: View {
 
             statsGrid(thread)
 
+            if let profile = model.topicProfile(for: thread.id), !profile.segments.isEmpty {
+                regionSection(profile)
+            }
+
             Divider().overlay(HUD.hairline)
 
             HStack(spacing: 8) {
@@ -163,6 +180,72 @@ struct DetailPanelView: View {
                 }
             }
         }
+    }
+
+    private func regionSection(_ profile: ThreadTopicProfile) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                MicroLabel(text: "Regions", color: HUD.textSoft)
+                Text("\(profile.segments.count) SEGMENTS")
+                    .font(HUDFont.micro(6.5))
+                    .tracking(0.8)
+                    .foregroundStyle(HUD.dim)
+                Spacer(minLength: 0)
+                Text("ON-DEVICE")
+                    .font(HUDFont.micro(6))
+                    .tracking(0.7)
+                    .foregroundStyle(HUD.dim)
+            }
+
+            FlowLayout(spacing: 5, lineSpacing: 5) {
+                ForEach(profile.regions.prefix(4)) { share in
+                    Text("\(share.label.uppercased()) \(share.percentage)%")
+                        .font(HUDFont.micro(6.5))
+                        .tracking(0.5)
+                        .foregroundStyle(HUD.textSoft)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(HUD.accent.opacity(0.07))
+                                .overlay(Capsule().strokeBorder(HUD.accent.opacity(0.22), lineWidth: 0.7))
+                        )
+                }
+            }
+
+            VStack(spacing: 1) {
+                ForEach(profile.segments.prefix(5)) { segment in
+                    HStack(spacing: 6) {
+                        Rectangle()
+                            .fill(HUD.accent.opacity(0.55))
+                            .frame(width: 2, height: 9)
+                        Text(segment.displayTitle)
+                            .font(HUDFont.micro(7))
+                            .foregroundStyle(HUD.textSoft)
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text("\(segment.startMessageIndex + 1)–\(segment.endMessageIndex)")
+                            .font(HUDFont.micro(6.5))
+                            .foregroundStyle(HUD.dim)
+                        Text("\(Int((segment.confidence * 100).rounded()))%")
+                            .font(HUDFont.micro(6.5))
+                            .foregroundStyle(HUD.dim)
+                    }
+                    .padding(.vertical, 3)
+                    .padding(.horizontal, 5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white.opacity(0.02))
+                    )
+                }
+            }
+        }
+        .padding(9)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.white.opacity(0.025))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HUD.hairline, lineWidth: 0.8))
+        )
     }
 
     private func statsGrid(_ thread: ConversationThread) -> some View {
@@ -200,6 +283,15 @@ struct DetailPanelView: View {
 
     // MARK: - Cluster / overview
 
+    private var clusterBadge: String {
+        if node.kind == .tag { return "SHARED TAG" }
+        if node.kind == .root { return "NEXUS OVERVIEW" }
+        if model.grouping == .region {
+            return node.parentID == nil ? "REGION" : "SUB-REGION"
+        }
+        return "CONSTELLATION"
+    }
+
     private var clusterContent: some View {
         let threads = model.threads(for: node)
         let accent = HUD.color(for: node)
@@ -209,7 +301,7 @@ struct DetailPanelView: View {
                     if let provider = node.provider {
                         ProviderBadge(provider: provider)
                     } else {
-                        Text(node.kind == .tag ? "SHARED TAG" : (node.kind == .root ? "NEXUS OVERVIEW" : "CONSTELLATION"))
+                        Text(clusterBadge)
                             .font(HUDFont.micro(7.5))
                             .tracking(1.1)
                             .foregroundStyle(accent)
@@ -230,6 +322,33 @@ struct DetailPanelView: View {
                     .font(HUDFont.body(11.5))
                     .foregroundStyle(HUD.muted)
                     .lineSpacing(3)
+            }
+
+            if node.kind == .group, model.grouping == .region {
+                let children = model.graph.childGroups(of: node.id)
+                if !children.isEmpty {
+                    FlowLayout(spacing: 5, lineSpacing: 5) {
+                        ForEach(children) { child in
+                            Button {
+                                model.select(child.id, focus: true)
+                            } label: {
+                                let count = model.graph.threadNodes.filter { $0.groupID == child.id }.count
+                                Text("\(child.label) \(count)")
+                                    .font(HUDFont.micro(6.5))
+                                    .tracking(0.5)
+                                    .foregroundStyle(HUD.textSoft)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.white.opacity(0.035))
+                                            .overlay(Capsule().strokeBorder(HUD.hairline, lineWidth: 0.7))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
             }
 
             HStack(spacing: 0) {

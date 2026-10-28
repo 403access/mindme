@@ -13,7 +13,8 @@ The same constellation in spatial mode:
 ## What it does
 
 - **Loads real conversations** — ChatGPT `conversations.json`, Google Takeout Gemini Apps activity, Claude `conversations.json`, HTML Takeout pages (best effort), the local OpenCode SQLite library, and a documented generic schema.
-- **Groups the map** by provider, shared topic keyword, or time period.
+- **Groups the map** by provider, shared topic keyword, time period, or hierarchical **region**.
+- **Classifies conversations and their parts** — each thread is segmented where the topic actually changes, then scored against an editable region spine (product, technology, legal, finance, design, research, operations, personal) with sub-regions underneath. A mixed project thread can be 60% technology and 40% legal; the inspector shows every segment.
 - **Filters the signal** by source, time window, and free-text query, with a live thread index.
 - **Connects conversations** through shared keyword tags, creating bridges across providers without merging the underlying threads.
 - **Inspects everything** — select a node to read the transcript, see metadata, jump to the source in the browser, or click a tag to isolate every conversation behind it.
@@ -111,6 +112,24 @@ The synthetic demo archive remains available at any time via **File → Load Dem
 
 `provider` accepts `chatgpt`, `gemini`, `claude`, `opencode`, or anything else (shown as *Other*). If `provider` is omitted, MINDME infers it from the filename when possible.
 
+## Regions and sub-regions
+
+Choose **REGION** in the Lens section (or *Map → Group By → Region*). The map becomes two levels deep:
+
+- an inner hub per **region** — Product, Technology, Legal, Finance, Design, Research, Operations, Personal, Emerging
+- a ring of **sub-region** hubs inside it — e.g. Technology splits into Software, Architecture, and AI
+- conversations fan out from the sub-region they spend most of their words in
+
+The pipeline runs entirely on-device:
+
+1. **Segment** each thread into exchanges (prompt + reply) and cut where the vocabulary shifts, time gap grows, or the prompt contains an explicit cue ("now let's switch to the contract").
+2. **Classify** each segment against the taxonomy, parents gating children, using deterministic hashed text embeddings plus a seed lexicon (English + German).
+3. **Smooth** the sequence with Viterbi so a single stray paragraph cannot tear a region apart.
+4. **Roll up** weighted by prompt length — assistant verbosity does not get to pick the topic. The result is a soft distribution: a thread can belong to several regions.
+5. **Cache** profiles per thread content hash in `~/Library/Application Support/MindMap/topics.json`; importing new chats does not reclassify old ones.
+
+The default taxonomy lives in `Core/Sources/MindMapCore/Analysis/Topics/TopicTaxonomy.swift` and is mirrored to `~/Library/Application Support/MindMap/taxonomy.json` on first run. Edit labels, descriptions, or seeds there and use *Map → Reclassify Topics* (⌘⇧T) — no rebuild required. Low-confidence material lands in **Emerging** instead of being forced into a wrong region.
+
 ## Reading the map
 
 - **Root hexagon** — all currently visible threads.
@@ -165,6 +184,7 @@ MindMap/
     ├── Models/              ConversationThread, ChatMessage, Provider, ThreadLibrary
     ├── Import/              format sniffing + ChatGPT/Gemini/Claude/OpenCode/generic parsers
     ├── Analysis/            keyword extraction + topic clustering
+    │   └── Topics/           segmentation, taxonomy, classifier, smoothing
     ├── Graph/               graph builder, 2D anchors/force layout, 3D anchors
     ├── Store/               local JSON persistence
     └── Demo/                deterministic demo archive
@@ -181,7 +201,8 @@ MindMap/
 - Gemini HTML exports are parsed best-effort; the JSON activity export is more reliable.
 - ChatGPT branches: MINDME follows the currently selected branch (`current_node`), not abandoned regenerations.
 - The map renders at most 420 conversations at once (configurable in `GraphFilters.maxThreads`); use source/time/search filters for very large archives.
-- Keyword extraction is intentionally lightweight (TF-IDF-ish, English + German stopwords). It is explainable and instant, not an embedding model.
+- Keyword extraction is intentionally lightweight (TF-IDF-ish, English + German stopwords). Topic classification uses deterministic hashed bag-of-words embeddings plus seed vocabularies — explainable and offline, not a neural sentence encoder. The `TopicEmbeddingProvider` protocol is the seam for dropping in a bundled CoreML MiniLM later.
+- Topic analysis runs once per archive change and caches every thread profile by content hash. A 400-thread library takes a couple of seconds on first run; later launches reuse `topics.json`, and only new or edited conversations are reclassified.
 - The app is ad-hoc signed for local use. For distribution you will want your own Developer ID and notarization.
 
 ## iOS

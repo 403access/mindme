@@ -88,6 +88,7 @@ public struct ForceLayout {
             let strength: Double
             switch edge.kind {
             case .rootGroup: rest = 300; strength = 0.28
+            case .regionGroup: rest = 210; strength = 0.42
             case .groupThread: rest = 118; strength = 0.52
             case .threadTag: rest = 72; strength = 0.34
             }

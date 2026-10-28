@@ -17,7 +17,42 @@ public enum GraphLayout {
         let totalThreads = max(1, threadNodes.count)
         let hubRadius = 235.0 + 8.5 * sqrt(Double(totalThreads))
 
-        // Allocate an angular sector proportional to each group's size.
+        if groups.contains(where: { $0.parentID != nil }) {
+            placeHierarchy(
+                groups: groups,
+                threadNodes: threadNodes,
+                hubRadius: hubRadius,
+                anchors: &anchors
+            )
+        } else {
+            placeFlat(
+                groups: groups,
+                threadNodes: threadNodes,
+                hubRadius: hubRadius,
+                anchors: &anchors
+            )
+        }
+
+        // Tags float between the conversations that share them.
+        placeTags(graph: graph, hubRadius: hubRadius, anchors: &anchors)
+
+        // A slightly elliptical field uses wide desktop canvases better than a
+        // perfect circle, while keeping the radial hierarchy intact.
+        for (id, point) in anchors where id != "root" {
+            anchors[id] = Vec2(point.x * 1.12, point.y * 0.94)
+        }
+
+        return anchors
+    }
+
+    // MARK: - Flat groups (provider / topic / era)
+
+    private static func placeFlat(
+        groups: [MindMapNode],
+        threadNodes: [MindMapNode],
+        hubRadius: Double,
+        anchors: inout [String: Vec2]
+    ) {
         var weights: [Double] = []
         for group in groups {
             let count = threadNodes.filter { $0.groupID == group.id }.count
@@ -31,8 +66,7 @@ public enum GraphLayout {
         for (groupIndex, group) in groups.enumerated() {
             let sector = usable * (weights[groupIndex] / totalWeight)
             let hubAngle = angle + sector / 2 + padding / 2
-            let hub = Vec2(cos(hubAngle), sin(hubAngle)) * hubRadius
-            anchors[group.id] = hub
+            anchors[group.id] = Vec2(cos(hubAngle), sin(hubAngle)) * hubRadius
 
             let children = threadNodes
                 .filter { $0.groupID == group.id }
@@ -58,8 +92,110 @@ public enum GraphLayout {
 
             angle += sector + padding
         }
+    }
 
-        // Tags float between the conversations that share them.
+    // MARK: - Hierarchical regions
+
+    private static func placeHierarchy(
+        groups: [MindMapNode],
+        threadNodes: [MindMapNode],
+        hubRadius: Double,
+        anchors: inout [String: Vec2]
+    ) {
+        let roots = groups.filter { $0.parentID == nil }
+        guard !roots.isEmpty else { return }
+
+        let groupByID = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0) })
+        func ownedThreads(_ rootID: String) -> [MindMapNode] {
+            threadNodes.filter { node in
+                guard let groupID = node.groupID,
+                      let group = groupByID[groupID] else { return false }
+                return groupID == rootID || group.parentID == rootID
+            }
+        }
+
+        let weights = roots.map { Double(max(ownedThreads($0.id).count, 2)) }
+        let totalWeight = weights.reduce(0, +)
+        let padding = roots.count > 1 ? 0.10 : 0.0
+        let usable = 2 * Double.pi - padding * Double(roots.count)
+        var angle = -Double.pi / 2
+
+        for (rootIndex, root) in roots.enumerated() {
+            let sector = usable * (weights[rootIndex] / totalWeight)
+            let rootAngle = angle + sector / 2 + padding / 2
+            // Regions live on an inner ring; their sub-regions and threads
+            // fan outward so the nesting reads inside-out.
+            anchors[root.id] = Vec2(cos(rootAngle), sin(rootAngle)) * (hubRadius * 0.70)
+
+            let children = groups.filter { $0.parentID == root.id }
+            let spread = min(2.4, max(0.62, sector * 0.82))
+
+            if children.isEmpty {
+                let direct = ownedThreads(root.id)
+                    .sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
+                placeThreads(
+                    direct,
+                    centerAngle: rootAngle,
+                    baseRadius: hubRadius * 0.82,
+                    spread: min(1.2, max(0.35, sector * 0.7)),
+                    anchors: &anchors
+                )
+            }
+
+            for (childIndex, child) in children.enumerated() {
+                let t = children.count <= 1
+                    ? 0.5
+                    : Double(childIndex) / Double(children.count - 1)
+                let childAngle = rootAngle + (t - 0.5) * spread
+                let childRadius = hubRadius + 26
+                anchors[child.id] = Vec2(cos(childAngle), sin(childAngle)) * childRadius
+
+                let threads = threadNodes
+                    .filter { $0.groupID == child.id }
+                    .sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
+                let childSpread = min(1.15, max(0.30, sector / Double(max(children.count, 1)) * 0.82))
+                placeThreads(
+                    threads,
+                    centerAngle: childAngle,
+                    baseRadius: childRadius + 86,
+                    spread: childSpread,
+                    anchors: &anchors
+                )
+            }
+
+            angle += sector + padding
+        }
+    }
+
+    private static func placeThreads(
+        _ threads: [MindMapNode],
+        centerAngle: Double,
+        baseRadius: Double,
+        spread: Double,
+        anchors: inout [String: Vec2]
+    ) {
+        guard !threads.isEmpty else { return }
+        let perRow = min(8, max(5, Int(ceil(sqrt(Double(threads.count) * 1.3)))))
+        let rows = max(1, Int(ceil(Double(threads.count) / Double(perRow))))
+        for (index, node) in threads.enumerated() {
+            let row = index / perRow
+            let column = index % perRow
+            let countInRow = min(perRow, threads.count - row * perRow)
+            let rowFraction = rows <= 1 ? 0.0 : Double(row) / Double(rows - 1)
+            let radius = baseRadius + Double(row) * 52 + rowFraction * 8
+            let t = countInRow <= 1 ? 0.5 : Double(column) / Double(countInRow - 1)
+            let nodeAngle = centerAngle + (t - 0.5) * spread * (1.0 - rowFraction * 0.12)
+            anchors[node.id] = Vec2(cos(nodeAngle), sin(nodeAngle)) * radius
+        }
+    }
+
+    // MARK: - Tags
+
+    private static func placeTags(
+        graph: MindMapGraph,
+        hubRadius: Double,
+        anchors: inout [String: Vec2]
+    ) {
         let neighbors = graph.adjacency
         for tag in graph.tagNodes {
             let connected = (neighbors[tag.id] ?? []).compactMap { anchors[$0] }
@@ -87,13 +223,5 @@ public enum GraphLayout {
             }
             anchors[tag.id] = average
         }
-
-        // A slightly elliptical field uses wide desktop canvases better than a
-        // perfect circle, while keeping the radial hierarchy intact.
-        for (id, point) in anchors where id != "root" {
-            anchors[id] = Vec2(point.x * 1.12, point.y * 0.94)
-        }
-
-        return anchors
     }
 }

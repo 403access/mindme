@@ -15,6 +15,34 @@ public enum GraphLayout3D {
         let totalThreads = max(1, threads.count)
         let hubRadius = 330.0 + 7.0 * sqrt(Double(totalThreads))
 
+        if groups.contains(where: { $0.parentID != nil }) {
+            placeHierarchy(
+                groups: groups,
+                threads: threads,
+                hubRadius: hubRadius,
+                anchors: &anchors
+            )
+        } else {
+            placeFlat(
+                groups: groups,
+                threads: threads,
+                hubRadius: hubRadius,
+                anchors: &anchors
+            )
+        }
+
+        placeTags(graph: graph, hubRadius: hubRadius, anchors: &anchors)
+        return anchors
+    }
+
+    // MARK: - Flat groups
+
+    private static func placeFlat(
+        groups: [MindMapNode],
+        threads: [MindMapNode],
+        hubRadius: Double,
+        anchors: inout [String: Vec3]
+    ) {
         // Groups on a Fibonacci sphere so every provider/topic gets its own
         // corner of space instead of sharing a flat ring.
         for (index, group) in groups.enumerated() {
@@ -32,15 +60,64 @@ public enum GraphLayout3D {
 
             for (childIndex, node) in children.enumerated() {
                 let direction = fibonacciDirection(index: childIndex, count: count)
-                var p = hub + direction * cloudRadius * jitter(node.id, minimum: 0.78, maximum: 1.24)
-                p += outward * 18
-                if p.length < minRadius {
-                    p = p.normalized * minRadius
+                var point = hub + direction * cloudRadius * jitter(node.id, minimum: 0.78, maximum: 1.24)
+                point += outward * 18
+                if point.length < minRadius {
+                    point = point.normalized * minRadius
                 }
-                anchors[node.id] = p
+                anchors[node.id] = point
             }
         }
+    }
 
+    // MARK: - Hierarchical regions
+
+    private static func placeHierarchy(
+        groups: [MindMapNode],
+        threads: [MindMapNode],
+        hubRadius: Double,
+        anchors: inout [String: Vec3]
+    ) {
+        let roots = groups.filter { $0.parentID == nil }
+        guard !roots.isEmpty else { return }
+
+        for (rootIndex, root) in roots.enumerated() {
+            let rootDirection = fibonacciDirection(index: rootIndex, count: roots.count)
+            let rootHub = rootDirection * (hubRadius * 0.55)
+            anchors[root.id] = rootHub
+
+            let children = groups.filter { $0.parentID == root.id }
+            for (childIndex, child) in children.enumerated() {
+                let offset = fibonacciDirection(index: childIndex + 1, count: max(children.count + 2, 3))
+                let childDirection = (rootDirection + offset * 0.95).normalized
+                let childHub = childDirection * (hubRadius * 1.02)
+                anchors[child.id] = childHub
+
+                let clouds = threads
+                    .filter { $0.groupID == child.id }
+                    .sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
+                let count = max(1, clouds.count)
+                let cloudRadius = 78.0 + 8.0 * sqrt(Double(count))
+                for (threadIndex, node) in clouds.enumerated() {
+                    let direction = fibonacciDirection(index: threadIndex, count: count)
+                    var point = childHub + direction * cloudRadius * jitter(node.id, minimum: 0.8, maximum: 1.2)
+                    point += childDirection * 16
+                    if point.length < hubRadius * 0.35 {
+                        point = point.normalized * (hubRadius * 0.35)
+                    }
+                    anchors[node.id] = point
+                }
+            }
+        }
+    }
+
+    // MARK: - Tags
+
+    private static func placeTags(
+        graph: MindMapGraph,
+        hubRadius: Double,
+        anchors: inout [String: Vec3]
+    ) {
         // Tags float between the conversations that share them.
         let neighbors = graph.adjacency
         for tag in graph.tagNodes {
@@ -61,8 +138,6 @@ public enum GraphLayout3D {
             }
             anchors[tag.id] = average
         }
-
-        return anchors
     }
 
     // MARK: - Helpers

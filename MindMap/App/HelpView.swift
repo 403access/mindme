@@ -48,6 +48,7 @@ struct HelpView: View {
                         lines: [
                             ("SOURCE", "Group hubs by provider: ChatGPT, Gemini, Claude, or other."),
                             ("TOPIC", "Cluster conversations by the keywords they share."),
+                            ("REGION", "Classify conversations and their parts into product, technology, legal, and other regions, with sub-regions inside. Mixed threads show every segment in the inspector."),
                             ("ERA", "Group by month, quarter, or year, depending on the archive span.")
                         ]
                     )
@@ -75,6 +76,7 @@ struct HelpView: View {
                             key("⌘3", "3D")
                             key("⌘4", "CLOUD")
                             key("⌘5", "HYBRID")
+                            key("⌘⇧T", "TOPICS")
                             key("ESC", "CLOSE")
                         }
                     }
