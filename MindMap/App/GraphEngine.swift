@@ -35,6 +35,10 @@ final class GraphEngine: ObservableObject {
     var viewSize: CGSize = .zero
     var ambientMotion: Bool = true
 
+    /// Incremented whenever `frame.positions` changes. Cached layouts compare
+    /// this instead of walking the position dictionaries every frame.
+    private(set) var positionEpoch = 0
+
     private var currentFrame = RenderFrame()
     private var layout: ForceLayout?
     private var spatialAnchors: [String: Vec3] = [:]
@@ -99,6 +103,7 @@ final class GraphEngine: ObservableObject {
 
         spatialAnchors = GraphLayout3D.anchors(for: newGraph)
         currentFrame.positions3D = spatialAnchors
+        positionEpoch &+= 1
 
         if refit || !hasFitted {
             hasFitted = true
@@ -144,6 +149,7 @@ final class GraphEngine: ObservableObject {
             layout.step(dt: dt)
             self.layout = layout
             currentFrame.positions = layout.positions
+            positionEpoch &+= 1
             simulationSteps += 1
             if simulationSteps >= maxSimulationSteps {
                 currentFrame.isSettling = false

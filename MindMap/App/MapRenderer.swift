@@ -4,7 +4,11 @@ import MindMapCore
 
 /// Draws the constellation in screen space. Nodes and labels keep a stable
 /// pixel size at every zoom level; camera zoom only changes their spacing.
-struct MapRenderer {
+///
+/// A renderer lives for a single frame. Projections are resolved lazily into a
+/// per-frame cache because edges, nodes, labels, and auras all revisit the same
+/// node IDs.
+final class MapRenderer {
     let graph: MindMapGraph
     let positions: [String: Vec2]
     let positions3D: [String: Vec3]
@@ -18,17 +22,61 @@ struct MapRenderer {
     let showLabels: Bool
     let motion: Bool
     let hybridWords: Bool
+    let focusPath: Set<String>
 
-    private var projection: MapProjection {
-        MapProjection(
-            camera: camera,
-            camera3D: camera3D,
-            modeBlend: modeBlend,
-            size: size,
-            positions2D: positions,
-            positions3D: positions3D
-        )
+    init(
+        graph: MindMapGraph,
+        positions: [String: Vec2],
+        positions3D: [String: Vec3],
+        camera: Camera,
+        camera3D: Camera3D,
+        modeBlend: Double,
+        size: CGSize,
+        time: Double,
+        selectedNodeID: String?,
+        hoveredNodeID: String?,
+        showLabels: Bool,
+        motion: Bool,
+        hybridWords: Bool,
+        focusPath: Set<String>
+    ) {
+        self.graph = graph
+        self.positions = positions
+        self.positions3D = positions3D
+        self.camera = camera
+        self.camera3D = camera3D
+        self.modeBlend = modeBlend
+        self.size = size
+        self.time = time
+        self.selectedNodeID = selectedNodeID
+        self.hoveredNodeID = hoveredNodeID
+        self.showLabels = showLabels
+        self.motion = motion
+        self.hybridWords = hybridWords
+        self.focusPath = focusPath
     }
+
+    private lazy var projection = MapProjection(
+        camera: camera,
+        camera3D: camera3D,
+        modeBlend: modeBlend,
+        size: size,
+        positions2D: positions,
+        positions3D: positions3D
+    )
+
+    /// One projection per node, computed on first use and shared by every pass.
+    private lazy var projections: [String: ProjectedPoint] = {
+        var result: [String: ProjectedPoint] = [:]
+        result.reserveCapacity(graph.nodes.count)
+        let projection = self.projection
+        for node in graph.nodes {
+            if let projected = projection.project(nodeID: node.id) {
+                result[node.id] = projected
+            }
+        }
+        return result
+    }()
 
     private var spatialFade: Double { projection.spatialAlpha }
 
@@ -36,9 +84,7 @@ struct MapRenderer {
     private var halfHeight: CGFloat { size.height / 2 }
 
     private var focusID: String? { selectedNodeID ?? hoveredNodeID }
-    private var focusSet: Set<String> {
-        graph.focusPath(for: focusID)
-    }
+    private var focusSet: Set<String> { focusPath }
 
     // MARK: - Entry point
 
@@ -97,11 +143,11 @@ struct MapRenderer {
     }
 
     private func screenPoint(for nodeID: String) -> CGPoint? {
-        projection.project(nodeID: nodeID)?.point
+        projections[nodeID]?.point
     }
 
     private func projection(for nodeID: String) -> ProjectedPoint? {
-        projection.project(nodeID: nodeID)
+        projections[nodeID]
     }
 
     private func depthAlpha(_ projected: ProjectedPoint) -> Double {

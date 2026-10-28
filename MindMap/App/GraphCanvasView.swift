@@ -13,6 +13,7 @@ struct GraphCanvasView: View {
     @State private var dragPans = true
     @State private var lastMagnification: CGFloat = 1
     @State private var cursorIsHand = false
+    @State private var hybridCache = HybridLayoutCache()
 
     private let mapCornerRadius: CGFloat = 18
 
@@ -22,6 +23,9 @@ struct GraphCanvasView: View {
             ZStack {
                 Canvas(opaque: false, colorMode: .extendedLinear) { context, canvasSize in
                     let hybrid = model.viewMode == .hybrid
+                    let focusPath = model.graph.focusPath(
+                        for: model.selectedNodeID ?? model.hoveredNodeID
+                    )
                     let renderer = MapRenderer(
                         graph: model.graph,
                         positions: engine.frame.positions,
@@ -35,23 +39,24 @@ struct GraphCanvasView: View {
                         hoveredNodeID: model.hoveredNodeID,
                         showLabels: model.showLabels,
                         motion: model.motionEnabled,
-                        hybridWords: hybrid
+                        hybridWords: hybrid,
+                        focusPath: focusPath
                     )
+                    renderer.draw(into: &context)
                     if hybrid {
-                        renderer.draw(into: &context)
-                        let layout = HybridWordLayout.make(
+                        let layout = hybridCache.layout(
                             graph: model.graph,
+                            graphRevision: model.graphRevision,
                             projection: engine.projection,
-                            size: canvasSize
+                            size: canvasSize,
+                            positionEpoch: engine.positionEpoch
                         )
                         HybridWordRenderer(
-                            graph: model.graph,
                             layout: layout,
                             selectedNodeID: model.selectedNodeID,
-                            hoveredNodeID: model.hoveredNodeID
+                            hoveredNodeID: model.hoveredNodeID,
+                            focusPath: focusPath
                         ).draw(into: &context)
-                    } else {
-                        renderer.draw(into: &context)
                     }
                 }
                 .contentShape(Rectangle())
@@ -430,10 +435,12 @@ struct GraphCanvasView: View {
 
     private func hybridLayout(size: CGSize) -> HybridWordLayout {
         guard model.viewMode == .hybrid, !model.graph.isEmpty else { return .empty }
-        return HybridWordLayout.make(
+        return hybridCache.layout(
             graph: model.graph,
+            graphRevision: model.graphRevision,
             projection: engine.projection,
-            size: size
+            size: size,
+            positionEpoch: engine.positionEpoch
         )
     }
 

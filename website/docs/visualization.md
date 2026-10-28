@@ -59,7 +59,7 @@ SwiftUI Canvas (WordCloudView)
 
 MapProjection + MindMapGraph.tagNodes
    ▼
-HybridWordLayout (per frame, collision-resolved)   App/HybridWords.swift
+HybridLayoutCache (seeds + text metrics cached; re-placed on projection change)   App/HybridWords.swift
    ▼
 MapRenderer (full skeleton) + HybridWordRenderer   (⌘5)
    ▼
@@ -347,9 +347,10 @@ if its rect intersects an already-placed rect. Backgrounds are filled at
 
 ### Highlight vs. dim
 
-`focusID = selectedNodeID ?? hoveredNodeID`. The focus path is recomputed per
-frame from `graph.focusPath(for:)`; everything else is dimmed rather than
-removed, preserving spatial context.
+`focusID = selectedNodeID ?? hoveredNodeID`. The focus path is resolved once per
+frame in `GraphCanvasView` and passed into `MapRenderer`, so per-edge and
+per-node checks are set lookups; everything else is dimmed rather than removed,
+preserving spatial context.
 
 ---
 
@@ -423,21 +424,36 @@ plate behind each word keeps it readable over the edges.
 
 #### Layout
 
-`HybridWordLayout.make(graph:projection:size:)` runs against the live
-`MapProjection`, which means words follow the force simulation, panning, zoom,
-and 3D orbit.
+`HybridLayoutCache.layout(graph:graphRevision:projection:size:positionEpoch:)`
+resolves words against the live `MapProjection`, so they follow the force
+simulation, panning, zoom, and 3D orbit. Work is split into three cached stages
+so only stage 3 runs when the camera moves:
 
-1. Sort tags by weight as in the free cloud, with a smaller type ramp:
-   `maxFont = clamp(5.2% of the shorter view side, 20 … 38)`.
-2. Project each tag node through `MapProjection`. The projected point is the
-   word's **anchor**, so it inherits the tag's structural position between the
-   conversations that share it.
-3. Try the anchor first. On collision, search a circular spiral outward to at
-   most 30% of the shorter view side; retry at smaller font sizes if needed.
-4. Keep the word rect inside the canvas. Words whose anchors are far off-screen
-   are skipped.
-5. If collision resolution displaced a word by more than 9 pt, draw a dashed
-   tether from the anchor to the word plus a dot at the tag position.
+1. **Seeds (per graph).** Tags are sorted by weight as in the free cloud, and
+   each seed keeps its extracted label, provider palette, colour, rank, and
+   phase. Graph rebuilds bump `AppModel.graphRevision`, the only condition that
+   invalidates this stage.
+2. **Text metrics (per canvas size).** The smaller type ramp
+   `maxFont = clamp(5.2% of the shorter view side, 20 … 38)` is rendered into
+   five font steps (`1.0, 0.88, 0.76, 0.64, 0.54`), measured once per seed, and
+   reused for every pan and zoom.
+3. **Placement (per projection change).** Each tag node is projected through
+   `MapProjection`; the projected point is the word's **anchor**, so it inherits
+   the tag's structural position between the conversations that share it.
+   Try the anchor first; on collision, search a circular spiral outward to at
+   most 30% of the shorter view side, trying smaller font steps as needed. Keep
+   the word rect inside the canvas; skip anchors far off-screen.
+
+Placement is memoized on `(graphRevision, canvas size, projection size, 2D
+camera, 3D camera, mode blend, position epoch)`. `GraphEngine.positionEpoch`
+advances only when positions actually change, so a settled camera reuses the
+previous layout and pays just a key comparison.
+
+Collision tests go through a 64 pt spatial hash instead of scanning every placed
+word, which keeps the pass cheap even while the whole constellation is settling.
+
+If collision resolution displaced a word by more than 9 pt, a dashed tether is
+drawn from the anchor to the word plus a dot at the tag position.
 
 This is the key difference from the free cloud: size still encodes shared
 conversation count, but position encodes graph structure instead of a neutral
@@ -498,8 +514,15 @@ The engine ticks at 60 Hz but publishes frames adaptively:
 
 The free word cloud is outside the engine loop: its layout is cached, and only
 the optional drift redraws at 15 fps (static when **MOTION** is off). The hybrid
-cloud resolves collisions against the live projection while the constellation is
-being drawn, so it shares the map's camera throttle rather than adding a timer.
+cloud shares the map's camera throttle and only re-places words when the
+projection changes; its seeds and text metrics are cached per graph and canvas
+size, collision tests use a spatial hash, and hover/click hit testing reuses the
+same layout object as the renderer instead of rebuilding it.
+
+`MapRenderer` is a per-frame object. It projects each node once into a small
+cache that the edge, node, label, and aura passes share, and the focus path is
+resolved once per frame rather than per edge (previously each `isHighlighted`
+call re-walked the graph).
 
 Other guards:
 
@@ -553,10 +576,10 @@ Touch points: `NodeKind`, `GraphBuilder`, `HUD.color(for:)`,
 ### Extend the cloud modes
 
 `WordCloudLayout.make` owns free-cloud placement and sizing; `WordCloudRenderer`
-owns its passes. `HybridWordLayout.make` owns anchor-relative placement and
-`HybridWordRenderer` owns the hybrid passes and tethers. Add colour or typography
-rules in those types. New data sources should continue to arrive as `tagNodes`,
-so the map and both cloud lenses stay in sync.
+owns its passes. `HybridLayoutCache` owns graph seeds, text metrics, and
+anchor-relative placement, while `HybridWordRenderer` owns the hybrid passes and
+tethers. Add colour or typography rules in those types. New data sources should
+continue to arrive as `tagNodes`, so the map and both cloud lenses stay in sync.
 
 ---
 

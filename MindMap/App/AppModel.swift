@@ -98,6 +98,10 @@ final class AppModel: ObservableObject {
     @Published private(set) var lastImportSummary: String?
     @Published private(set) var lastImportDate: Date?
 
+    /// Bumped on every graph rebuild. Lets view-layer caches detect a new
+    /// graph without hashing the node set on each render.
+    private(set) var graphRevision = 0
+
     // Filters
     @Published var providers: Set<Provider> = Set(Provider.allCases) {
         didSet { rebuild() }
@@ -214,6 +218,7 @@ final class AppModel: ObservableObject {
     private func rebuild(refit: Bool = false) {
         let filters = self.filters
         graph = GraphBuilder.build(library: library, filters: filters)
+        graphRevision &+= 1
         visibleThreads = library.threads
             .filter { filters.matches($0) }
             .sorted { $0.updatedAt > $1.updatedAt }

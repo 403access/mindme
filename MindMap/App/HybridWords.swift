@@ -19,19 +19,176 @@ struct HybridWordLayout {
     static let empty = HybridWordLayout()
 
     func word(at point: CGPoint) -> CloudWord? {
-        words
-            .filter { $0.rect.insetBy(dx: -5, dy: -4).contains(point) }
-            .min { ($0.rect.width * $0.rect.height) < ($1.rect.width * $1.rect.height) }
+        var best: CloudWord?
+        var bestArea = CGFloat.infinity
+        for word in words {
+            guard word.rect.insetBy(dx: -5, dy: -4).contains(point) else { continue }
+            let area = word.rect.width * word.rect.height
+            if area < bestArea {
+                bestArea = area
+                best = word
+            }
+        }
+        return best
+    }
+}
+
+// MARK: - Cached inputs
+
+/// Everything about one tag that does not depend on the projection or canvas
+/// size. Building these once per graph keeps keyword extraction, provider
+/// resolution, and colour hashing out of the per-frame path.
+private struct HybridWordSeed {
+    let id: String
+    let term: String
+    let weight: Double
+    let threadCount: Int
+    let providers: [Provider]
+    let color: Color
+    let rankNorm: Double
+    let phase: Double
+}
+
+/// One font step for a seed at the current canvas size, with its text already
+/// measured. Panning and zooming reuse these boxes instead of re-measuring.
+private struct HybridWordMetrics {
+    let font: CGFloat
+    let size: CGSize
+}
+
+/// Spatial hash for placed word rects. The hybrid layout used to compare every
+/// candidate position against every placed word; the grid keeps each test local
+/// even while the whole constellation is settling.
+private struct OccupancyGrid {
+    private static let cellSize: CGFloat = 64
+
+    private struct Cell: Hashable {
+        let x: Int
+        let y: Int
     }
 
-    static func make(
+    private var buckets: [Cell: [CGRect]] = [:]
+
+    mutating func insert(_ rect: CGRect) {
+        for cell in cells(for: rect) {
+            buckets[cell, default: []].append(rect)
+        }
+    }
+
+    func intersects(_ rect: CGRect) -> Bool {
+        for cell in cells(for: rect) {
+            guard let bucket = buckets[cell] else { continue }
+            if bucket.contains(where: { $0.intersects(rect) }) { return true }
+        }
+        return false
+    }
+
+    private func cells(for rect: CGRect) -> [Cell] {
+        let size = Self.cellSize
+        let minX = Int(floor(rect.minX / size))
+        let maxX = Int(floor(rect.maxX / size))
+        let minY = Int(floor(rect.minY / size))
+        let maxY = Int(floor(rect.maxY / size))
+        var result: [Cell] = []
+        result.reserveCapacity((maxX - minX + 1) * (maxY - minY + 1))
+        for x in minX...maxX {
+            for y in minY...maxY {
+                result.append(Cell(x: x, y: y))
+            }
+        }
+        return result
+    }
+}
+
+// MARK: - Layout cache
+
+/// Memoizes the hybrid layout at three levels: graph-derived seeds, per-size
+/// text metrics, and the final placed layout keyed by the projection state.
+///
+/// Drawing, hover hit testing, and click handling share one instance, so the
+/// collision pass runs at most once per rendered frame — and not at all while
+/// the camera is still (ambient motion at 10 fps costs only a key comparison).
+final class HybridLayoutCache {
+    private struct LayoutKey: Equatable {
+        var graphRevision: Int
+        var size: CGSize
+        var projectionSize: CGSize
+        var camera: Camera
+        var camera3D: Camera3D
+        var modeBlend: Double
+        var positionEpoch: Int
+    }
+
+    private var seedRevision = -1
+    private var seeds: [HybridWordSeed] = []
+    private var minWeight: Double = 0
+    private var maxWeight: Double = 1
+
+    private var metricsSize: CGSize = .zero
+    private var metricsBySeed: [[HybridWordMetrics]] = []
+
+    private var layoutKey: LayoutKey?
+    private var cachedLayout = HybridWordLayout.empty
+
+    func layout(
         graph: MindMapGraph,
+        graphRevision: Int,
         projection: MapProjection,
-        size: CGSize
+        size: CGSize,
+        positionEpoch: Int
     ) -> HybridWordLayout {
-        let tags = graph.tagNodes
-        guard !tags.isEmpty, size.width > 80, size.height > 80 else {
+        guard size.width > 80, size.height > 80 else {
             return HybridWordLayout(size: size)
+        }
+
+        if graphRevision != seedRevision {
+            rebuildSeeds(graph)
+            seedRevision = graphRevision
+        }
+        guard !seeds.isEmpty else {
+            layoutKey = nil
+            cachedLayout = HybridWordLayout(size: size)
+            return cachedLayout
+        }
+
+        // Text metrics only depend on the graph and the canvas size, so a pan,
+        // zoom, or orbit never pays for font measurement.
+        if metricsSize != size {
+            rebuildMetrics(size: size)
+            metricsSize = size
+        }
+
+        let key = LayoutKey(
+            graphRevision: graphRevision,
+            size: size,
+            projectionSize: projection.size,
+            camera: projection.camera,
+            camera3D: projection.camera3D,
+            modeBlend: projection.modeBlend,
+            positionEpoch: positionEpoch
+        )
+        if key == layoutKey { return cachedLayout }
+
+        let placed = Self.place(
+            seeds: seeds,
+            metricsBySeed: metricsBySeed,
+            projection: projection,
+            size: size
+        )
+        layoutKey = key
+        cachedLayout = placed
+        return placed
+    }
+
+    // MARK: Seeds
+
+    private func rebuildSeeds(_ graph: MindMapGraph) {
+        let tags = graph.tagNodes
+        guard !tags.isEmpty else {
+            seeds = []
+            metricsBySeed = []
+            metricsSize = .zero
+            return
         }
 
         let adjacency = graph.adjacency
@@ -41,46 +198,116 @@ struct HybridWordLayout {
             return a.label.localizedStandardCompare(b.label) == .orderedAscending
         }
 
+        minWeight = sorted.last?.weight ?? 0
+        maxWeight = sorted.first?.weight ?? 1
+
+        seeds = sorted.enumerated().map { rank, node in
+            let rankNorm = sorted.count <= 1
+                ? 1.0
+                : Double(sorted.count - 1 - rank) / Double(sorted.count - 1)
+            let term = KeywordExtractor.prettyLabel(node.label)
+            let providerSet = Set((adjacency[node.id] ?? []).compactMap { nodeByID[$0]?.provider })
+            let providers = providerSet.sorted { $0.order < $1.order }
+            return HybridWordSeed(
+                id: node.id,
+                term: term,
+                weight: node.weight,
+                threadCount: max(1, Int(node.weight.rounded())),
+                providers: providers,
+                color: WordCloudLayout.cloudColor(term: term, providers: providers),
+                rankNorm: rankNorm,
+                phase: Double(StableID.hash(node.id) % 6_283) / 1_000
+            )
+        }
+
+        metricsBySeed = []
+        metricsSize = .zero
+    }
+
+    // MARK: Metrics
+
+    private func rebuildMetrics(size: CGSize) {
         let bounds = CGRect(origin: .zero, size: size).insetBy(dx: 12, dy: 12)
         guard bounds.width > 60, bounds.height > 60 else {
-            return HybridWordLayout(size: size)
+            metricsBySeed = []
+            return
         }
 
         let minFont: CGFloat = 8.5
         let maxFont = min(max(20, min(size.width, size.height) * 0.052), 38)
-        let minWeight = sorted.map(\.weight).min() ?? 0
-        let maxWeight = sorted.map(\.weight).max() ?? 1
+        let span = maxWeight - minWeight
+
+        metricsBySeed = seeds.map { seed in
+            let weightNorm = span > 0 ? (seed.weight - minWeight) / span : 0.5
+            let blend = 0.68 * weightNorm + 0.32 * seed.rankNorm
+            let font = minFont + (maxFont - minFont) * CGFloat(pow(blend, 0.82))
+            return Self.metrics(term: seed.term, preferredFont: font, bounds: bounds)
+        }
+    }
+
+    private static func metrics(
+        term: String,
+        preferredFont: CGFloat,
+        bounds: CGRect
+    ) -> [HybridWordMetrics] {
+        let maxWidth = bounds.width * 0.82
+        var result: [HybridWordMetrics] = []
+        result.reserveCapacity(5)
+
+        for scale in [CGFloat(1.0), 0.88, 0.76, 0.64, 0.54] {
+            var font = preferredFont * scale
+            guard font >= 8 else { continue }
+
+            var textSize = WordCloudLayout.measure(term, font: font)
+            if textSize.width + 14 > maxWidth {
+                font *= maxWidth / (textSize.width + 14)
+                guard font >= 8 else { continue }
+                textSize = WordCloudLayout.measure(term, font: font)
+            }
+
+            let wordSize = CGSize(
+                width: ceil(textSize.width) + 14,
+                height: ceil(textSize.height) + 8
+            )
+            guard wordSize.width <= bounds.width, wordSize.height <= bounds.height else { continue }
+            result.append(HybridWordMetrics(font: font, size: wordSize))
+        }
+
+        return result
+    }
+
+    // MARK: Placement
+
+    private static func place(
+        seeds: [HybridWordSeed],
+        metricsBySeed: [[HybridWordMetrics]],
+        projection: MapProjection,
+        size: CGSize
+    ) -> HybridWordLayout {
+        let bounds = CGRect(origin: .zero, size: size).insetBy(dx: 12, dy: 12)
+        guard bounds.width > 60, bounds.height > 60,
+              metricsBySeed.count == seeds.count else {
+            return HybridWordLayout(size: size)
+        }
+
         let visibleBounds = bounds.insetBy(dx: -48, dy: -48)
-
-        var occupied: [CGRect] = []
+        var occupancy = OccupancyGrid()
         var words: [CloudWord] = []
+        words.reserveCapacity(seeds.count)
 
-        for (rank, node) in sorted.enumerated() {
-            guard let projected = projection.project(nodeID: node.id) else { continue }
+        for (index, seed) in seeds.enumerated() {
+            let metrics = metricsBySeed[index]
+            guard !metrics.isEmpty else { continue }
+            guard let projected = projection.project(nodeID: seed.id) else { continue }
             let anchor = projected.point
             guard visibleBounds.contains(anchor) else { continue }
 
-            let rankNorm = sorted.count <= 1
-                ? 1.0
-                : Double(sorted.count - 1 - rank) / Double(sorted.count - 1)
-            let weightNorm = maxWeight > minWeight
-                ? (node.weight - minWeight) / (maxWeight - minWeight)
-                : 0.5
-            let blend = 0.68 * weightNorm + 0.32 * rankNorm
-            let font = minFont + (maxFont - minFont) * CGFloat(pow(blend, 0.82))
-
-            let term = KeywordExtractor.prettyLabel(node.label)
-            let providerSet = Set((adjacency[node.id] ?? []).compactMap { nodeByID[$0]?.provider })
-            let providers = providerSet.sorted { $0.order < $1.order }
-            let color = WordCloudLayout.cloudColor(term: term, providers: providers)
-
-            guard let placement = place(
-                term: term,
-                preferredFont: font,
+            guard let placement = placeWord(
                 anchor: anchor,
+                metrics: metrics,
                 bounds: bounds,
-                occupied: occupied,
-                phase: Double(StableID.hash(node.id) % 6_283) / 1_000
+                occupancy: &occupancy,
+                phase: seed.phase
             ) else { continue }
 
             let rect = CGRect(
@@ -89,54 +316,40 @@ struct HybridWordLayout {
                 width: placement.size.width,
                 height: placement.size.height
             )
-            occupied.append(rect.insetBy(dx: -4, dy: -3))
+            occupancy.insert(rect.insetBy(dx: -4, dy: -3))
             words.append(CloudWord(
-                id: node.id,
-                term: term,
-                weight: node.weight,
-                threadCount: max(1, Int(node.weight.rounded())),
-                providers: providers,
+                id: seed.id,
+                term: seed.term,
+                weight: seed.weight,
+                threadCount: seed.threadCount,
+                providers: seed.providers,
                 fontSize: placement.font,
                 rect: rect,
                 anchor: anchor,
-                color: color
+                color: seed.color
             ))
         }
 
         return HybridWordLayout(words: words, size: size)
     }
 
-    private static func place(
-        term: String,
-        preferredFont: CGFloat,
+    private static func placeWord(
         anchor: CGPoint,
+        metrics: [HybridWordMetrics],
         bounds: CGRect,
-        occupied: [CGRect],
+        occupancy: inout OccupancyGrid,
         phase: Double
     ) -> (point: CGPoint, size: CGSize, font: CGFloat)? {
-        let scales: [CGFloat] = [1.0, 0.88, 0.76, 0.64, 0.54]
-        for scale in scales {
-            var font = preferredFont * scale
-            guard font >= 8 else { continue }
-
-            var textSize = WordCloudLayout.measure(term, font: font)
-            let maxWidth = bounds.width * 0.82
-            if textSize.width + 14 > maxWidth {
-                font *= maxWidth / (textSize.width + 14)
-                guard font >= 8 else { continue }
-                textSize = WordCloudLayout.measure(term, font: font)
-            }
-
-            let wordSize = CGSize(width: ceil(textSize.width) + 14, height: ceil(textSize.height) + 8)
-            guard wordSize.width <= bounds.width, wordSize.height <= bounds.height else { continue }
-            guard let point = anchoredPoint(
+        for metric in metrics {
+            if let point = anchoredPoint(
                 anchor: anchor,
-                size: wordSize,
+                size: metric.size,
                 bounds: bounds,
-                occupied: occupied,
+                occupancy: occupancy,
                 phase: phase
-            ) else { continue }
-            return (point, wordSize, font)
+            ) {
+                return (point, metric.size, metric.font)
+            }
         }
         return nil
     }
@@ -145,21 +358,12 @@ struct HybridWordLayout {
         anchor: CGPoint,
         size: CGSize,
         bounds: CGRect,
-        occupied: [CGRect],
+        occupancy: OccupancyGrid,
         phase: Double
     ) -> CGPoint? {
-        func fits(_ point: CGPoint) -> Bool {
-            let rect = CGRect(
-                x: point.x - size.width / 2,
-                y: point.y - size.height / 2,
-                width: size.width,
-                height: size.height
-            )
-            guard bounds.contains(rect) else { return false }
-            return !occupied.contains { $0.intersects(rect) }
+        if fits(anchor, size: size, bounds: bounds, occupancy: occupancy) {
+            return anchor
         }
-
-        if fits(anchor) { return anchor }
 
         // Search outward from the tag node. The cap keeps words recognizably
         // attached to their place in the constellation.
@@ -174,26 +378,43 @@ struct HybridWordLayout {
                 x: anchor.x + cos(angle) * radius,
                 y: anchor.y + sin(angle) * radius
             )
-            if fits(point) { return point }
+            if fits(point, size: size, bounds: bounds, occupancy: occupancy) {
+                return point
+            }
             angle += angleStep
             radius += radiusStep
         }
         return nil
+    }
+
+    private static func fits(
+        _ point: CGPoint,
+        size: CGSize,
+        bounds: CGRect,
+        occupancy: OccupancyGrid
+    ) -> Bool {
+        let rect = CGRect(
+            x: point.x - size.width / 2,
+            y: point.y - size.height / 2,
+            width: size.width,
+            height: size.height
+        )
+        guard bounds.contains(rect) else { return false }
+        return !occupancy.intersects(rect)
     }
 }
 
 // MARK: - Hybrid renderer
 
 struct HybridWordRenderer {
-    let graph: MindMapGraph
     let layout: HybridWordLayout
     let selectedNodeID: String?
     let hoveredNodeID: String?
+    let focusPath: Set<String>
 
     func draw(into context: inout GraphicsContext) {
         guard layout.size.width > 0 else { return }
         let focusID = selectedNodeID ?? hoveredNodeID
-        let focusPath = graph.focusPath(for: focusID)
 
         for word in layout.words {
             let selected = word.id == selectedNodeID
