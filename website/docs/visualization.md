@@ -1,8 +1,13 @@
+---
+title: Visualization
+description: Graph model, keyword pipeline, 2D and 3D layouts, cameras, renderer, and extension points.
+---
+
 # MINDME Visualization
 
 How a library of imported conversations becomes the map you see. This is the
-deep-dive companion to the [README](../../README.md): the graph model, the
-keyword pipeline, both layouts, the camera/projection stack, and the renderer.
+deep-dive companion to the [project README](https://github.com/403access/mindme#readme): the
+graph model, the keyword pipeline, both layouts, the camera/projection stack, and the renderer.
 
 **It is not a word cloud.** Words never drive type size. Keywords become
 topology — small diamond *tag nodes* and, in topic mode, group hubs — while the

@@ -1,0 +1,112 @@
+/**
+ * MINDME docs theme. Overrides Infima's palette with the app's HUD colours:
+ * cyan accent on a near-black background.
+ */
+
+:root {
+  --ifm-color-primary: #0b8fa8;
+  --ifm-color-primary-dark: #0a8096;
+  --ifm-color-primary-darker: #09798d;
+  --ifm-color-primary-darkest: #076375;
+  --ifm-color-primary-light: #0c9eba;
+  --ifm-color-primary-lighter: #0da5c3;
+  --ifm-color-primary-lightest: #10bbdd;
+  --ifm-background-color: #ffffff;
+  --ifm-code-font-size: 94%;
+  --ifm-font-family-base: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+    Roboto, Helvetica, Arial, sans-serif;
+  --ifm-font-family-monospace: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, monospace;
+  --mindme-cyan: #5fe3ff;
+  --mindme-panel: #0a111c;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #5fe3ff;
+  --ifm-color-primary-dark: #3fddfd;
+  --ifm-color-primary-darker: #2fd9fc;
+  --ifm-color-primary-darkest: #06c9f0;
+  --ifm-color-primary-light: #7fe9ff;
+  --ifm-color-primary-lighter: #8fecff;
+  --ifm-color-primary-lightest: #bff4ff;
+  --ifm-background-color: #04060b;
+  --ifm-background-surface-color: #070b14;
+  --ifm-navbar-background-color: rgba(4, 6, 11, 0.82);
+  --ifm-footer-background-color: #04060b;
+  --ifm-heading-color: #e9f1ff;
+  --ifm-font-color-base: #c3cee0;
+  --ifm-toc-border-color: rgba(255, 255, 255, 0.08);
+  --ifm-color-emphasis-300: rgba(255, 255, 255, 0.16);
+  --ifm-hr-border-color: rgba(255, 255, 255, 0.08);
+  --ifm-table-border-color: rgba(255, 255, 255, 0.1);
+  --docusaurus-highlighted-code-line-bg: rgba(95, 227, 255, 0.1);
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+[data-theme='dark'] .navbar {
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='dark'] .navbar__title {
+  letter-spacing: 0.14em;
+  font-weight: 800;
+}
+
+[data-theme='dark'] .navbar__logo img {
+  border-radius: 7px;
+}
+
+[data-theme='dark'] .menu__link--active:not(.menu__link--sublist) {
+  color: var(--ifm-color-primary);
+}
+
+[data-theme='dark'] .table-of-contents__link--active {
+  color: var(--ifm-color-primary);
+}
+
+[data-theme='dark'] .theme-doc-markdown h1,
+[data-theme='dark'] .theme-doc-markdown h2,
+[data-theme='dark'] .theme-doc-markdown h3 {
+  letter-spacing: -0.01em;
+}
+
+[data-theme='dark'] .theme-doc-markdown img {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .theme-code-block {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .pagination-nav__link {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .pagination-nav__link:hover {
+  border-color: var(--ifm-color-primary);
+}
+
+[data-theme='dark'] .footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Keep the primary button readable in both themes. */
+[data-theme='dark'] .button--primary {
+  color: #04060b;
+  --ifm-button-background-color: var(--ifm-color-primary);
+  --ifm-button-border-color: var(--ifm-color-primary);
+}
+
+[data-theme='dark'] .button--primary:hover {
+  color: #04060b;
+}
+
+[data-theme='dark'] ::selection {
+  background: rgba(95, 227, 255, 0.3);
+}

@@ -2,13 +2,13 @@
 
 A futuristic, local-first mind map for the conversations you have with different AI assistants. Import exports from **ChatGPT**, **Google Gemini**, and **Claude**, scan your local **OpenCode** session library, or bring your own JSON — then explore everything as a living constellation of sources, topics, and shared language.
 
-![MINDME map](MindMap/Docs/map.jpg)
+![MINDME map](website/static/img/map.jpg)
 
-![MINDME inspector](MindMap/Docs/inspector.jpg)
+![MINDME inspector](website/static/img/inspector.jpg)
 
 The same constellation in spatial mode:
 
-![MINDME 3D perspective](MindMap/Docs/spatial.jpg)
+![MINDME 3D perspective](website/static/img/spatial.jpg)
 
 ## What it does
 
@@ -50,6 +50,20 @@ Run the core test suite (importers, keyword extraction, clustering, graph filter
 ```bash
 make test
 ```
+
+## Documentation site
+
+The docs are a [Docusaurus](https://docusaurus.io) site in [`website/`](website). Run it locally:
+
+```bash
+cd website
+npm install
+npm start         # http://localhost:3000/mindme/
+```
+
+`npm run build` produces a static site in `website/build`. Pushing changes under `website/`
+to `main` deploys it to GitHub Pages via [`.github/workflows/docs.yml`](.github/workflows/docs.yml);
+enable **Settings → Pages → Source: GitHub Actions** once in the repository settings.
 
 ## Importing conversations
 
@@ -124,7 +138,7 @@ Interaction:
 
 ## Architecture
 
-> **Deep dive:** [Docs/visualization.md](MindMap/Docs/visualization.md) documents the graph model, keyword pipeline, both layouts, cameras, renderer, and extension points. The visualization is a node-link constellation — keywords become diamond tag nodes and topic hubs, never sized text.
+> **Deep dive:** [website/docs/visualization.md](website/docs/visualization.md) documents the graph model, keyword pipeline, both layouts, cameras, renderer, and extension points. The visualization is a node-link constellation — keywords become diamond tag nodes and topic hubs, never sized text.
 
 ```
 MindMap/

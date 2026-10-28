@@ -1,0 +1,141 @@
+:root {
+  --mindme-cyan: #5fe3ff;
+  --mindme-magenta: #ff5fd2;
+  --mindme-void: #04060b;
+  --mindme-panel: #0a111c;
+}
+
+.hero {
+  padding: 5.5rem 0 3.5rem;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(95, 227, 255, 0.14), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 85% 20%, rgba(255, 95, 210, 0.1), transparent 70%),
+    var(--mindme-void);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.heroInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.eyebrow {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: var(--mindme-cyan);
+  opacity: 0.85;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: clamp(3.4rem, 9vw, 6rem);
+  letter-spacing: 0.16em;
+  font-weight: 800;
+  margin: 0;
+  color: #e9f1ff;
+  text-shadow: 0 0 42px rgba(95, 227, 255, 0.45);
+}
+
+.tagline {
+  font-size: 1.15rem;
+  max-width: 620px;
+  color: #a9b6cc;
+  margin: 1.1rem 0 0;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1.9rem;
+}
+
+.screenshotFrame {
+  margin: 3.2rem auto 0;
+  max-width: 980px;
+  padding: 8px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(95, 227, 255, 0.28), rgba(255, 95, 210, 0.14));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), 0 0 60px rgba(95, 227, 255, 0.12);
+}
+
+.screenshot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.1rem;
+  padding: 3.5rem 0 0;
+}
+
+.feature {
+  padding: 1.4rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: var(--mindme-panel);
+}
+
+.feature h3 {
+  margin-top: 0;
+  font-size: 1.02rem;
+  letter-spacing: 0.02em;
+  color: #e9f1ff;
+}
+
+.feature p {
+  margin: 0;
+  color: #a9b6cc;
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.deepDive {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  margin: 3.5rem 0 5rem;
+  padding: 1.8rem 2rem;
+  border: 1px solid rgba(95, 227, 255, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(120deg, rgba(95, 227, 255, 0.07), rgba(255, 95, 210, 0.05));
+}
+
+.deepDive h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.3rem;
+}
+
+.deepDive p {
+  margin: 0;
+  max-width: 640px;
+  color: #a9b6cc;
+  font-size: 0.94rem;
+}
+
+.deepDive a {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding-top: 3.5rem;
+  }
+
+  .deepDive {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
