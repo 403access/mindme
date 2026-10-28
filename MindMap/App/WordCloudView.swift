@@ -14,6 +14,7 @@ struct CloudWord: Identifiable {
     let providers: [Provider]
     let fontSize: CGFloat
     let rect: CGRect
+    let anchor: CGPoint
     let color: Color
 
     var center: CGPoint {
@@ -110,6 +111,7 @@ struct WordCloudLayout {
                 providers: providers,
                 fontSize: placement.font,
                 rect: rect,
+                anchor: placement.point,
                 color: color
             ))
         }
@@ -117,7 +119,7 @@ struct WordCloudLayout {
         return WordCloudLayout(words: words, size: size)
     }
 
-    private static func cloudColor(term: String, providers: [Provider]) -> Color {
+    static func cloudColor(term: String, providers: [Provider]) -> Color {
         if providers.count > 1 { return HUD.accent }
         if let provider = providers.first { return HUD.providerColor(provider) }
         return HUD.topicColor(seed: Int(StableID.hash(term) % 10_000))
@@ -154,7 +156,7 @@ struct WordCloudLayout {
         return nil
     }
 
-    private static func measure(_ term: String, font: CGFloat) -> CGSize {
+    static func measure(_ term: String, font: CGFloat) -> CGSize {
         let nsFont = NSFont.systemFont(ofSize: font, weight: .semibold)
         return (term as NSString).size(withAttributes: [.font: nsFont])
     }
@@ -438,30 +440,6 @@ struct WordCloudView: View {
         }
     }
 
-    private func overlay(_ systemName: String, text: String, help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                Image(systemName: systemName)
-                    .font(.system(size: 8.5, weight: .semibold))
-                Text(text)
-                    .font(HUDFont.micro(7.5))
-                    .tracking(0.4)
-            }
-            .foregroundStyle(HUD.accent)
-            .frame(width: 54, height: 28)
-            .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(HUD.accent.opacity(0.12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .strokeBorder(HUD.accent.opacity(0.45), lineWidth: 0.8)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .help(help)
-    }
-
     @ViewBuilder
     private func overlays(size: CGSize) -> some View {
         // Telemetry, top-left
@@ -507,9 +485,7 @@ struct WordCloudView: View {
 
         // Mode switch, top-right
         VStack(spacing: 7) {
-            overlay("point.3.connected.trianglepath.dotted", text: "MAP", help: "Back to the constellation  ⌘4") {
-                model.showWordCloud = false
-            }
+            ViewModeControl(selection: $model.viewMode, compact: true)
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
@@ -665,7 +641,7 @@ struct CloudEmptyState: View {
                     .frame(width: 154)
                 } else if model.hasThreads {
                     HUDGhostButton(title: "Back to map", icon: "point.3.connected.trianglepath.dotted") {
-                        model.showWordCloud = false
+                        model.viewMode = .map
                     }
                 } else {
                     HUDPrimaryButton(title: "Import exports", icon: "square.and.arrow.down") {

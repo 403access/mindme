@@ -1,6 +1,6 @@
 ---
 title: Visualization
-description: Graph model, keyword pipeline, 2D and 3D layouts, word cloud, cameras, renderer, and extension points.
+description: Graph model, keyword pipeline, 2D and 3D layouts, word clouds, cameras, renderer, and extension points.
 ---
 
 # MINDME Visualization
@@ -12,12 +12,14 @@ graph model, the keyword pipeline, both layouts, the camera/projection stack, an
 **The default view is not a word cloud.** Words do not drive type size in the
 constellation. Keywords become topology — small diamond *tag nodes* and, in
 topic mode, group hubs — while the main visual object is a node-link
-force-directed graph. An opt-in **word cloud** (⌘4) exposes the same filtered
-tags as a second lens when you want to read the shared vocabulary directly.
+force-directed graph. Two opt-in cloud lenses expose the same filtered tags:
+a free **word cloud** (⌘4) and a **hybrid cloud** (⌘5) that keeps the
+constellation structure and anchors sized words to their tag nodes.
 
 ```
 KeywordExtractor ──► tag nodes, topic hubs, inspector chips
-                  └► WordCloudLayout (⌘4, size ∝ shared conversations)
+                  ├► WordCloudLayout (⌘4, free spiral)
+                  └► HybridWordLayout (⌘5, anchored to the map)
 ```
 
 ---
@@ -54,6 +56,14 @@ WordCloudLayout (cached per filter/size)    App/WordCloudView.swift
 WordCloudRenderer.draw(into: GraphicsContext)   (⌘4)
    ▼
 SwiftUI Canvas (WordCloudView)
+
+MapProjection + MindMapGraph.tagNodes
+   ▼
+HybridWordLayout (per frame, collision-resolved)   App/HybridWords.swift
+   ▼
+MapRenderer (full skeleton) + HybridWordRenderer   (⌘5)
+   ▼
+SwiftUI Canvas (GraphCanvasView)
 ```
 
 The core package is UI-independent; everything above `GraphEngine` is
@@ -343,21 +353,27 @@ removed, preserving spatial context.
 
 ---
 
-## 9. Word cloud mode
+## 9. Cloud modes
+
+Both cloud lenses read `MindMapGraph.tagNodes` — the same nodes the map draws
+as diamonds, already filtered by source, time window, and search. Each tag’s
+`weight` is the number of conversations sharing that keyword. Both enable
+`showTags` automatically; turning tags off while a cloud is open shows an
+explanatory empty state.
+
+| Mode | Shortcut | Structure | Layout lives in |
+| --- | --- | --- | --- |
+| free word cloud | ⌘4 | standalone spiral | `WordCloudView.swift` |
+| hybrid cloud | ⌘5 | constellation skeleton + anchored words | `HybridWords.swift` |
+| constellation | — | the node-link map | `MapRenderer.swift` |
+
+### Free word cloud (⌘4)
 
 `WordCloudView.swift` is an alternate lens, not a camera mode. It replaces the
-canvas while the toggle is active; the 2D/3D engine stops, and switching back
-restores the previous constellation and camera state.
+canvas while active; the 2D/3D engine stops, and switching back restores the
+previous constellation and camera state.
 
-### Data
-
-The cloud reads `MindMapGraph.tagNodes` — the same nodes the map draws as
-diamonds, already filtered by source, time window, and search. Each tag’s
-`weight` is the number of conversations sharing that keyword. Since the cloud
-needs tags, turning it on enables `showTags` automatically; turning tags off
-while the cloud is open shows an explanatory empty state.
-
-### Layout
+#### Layout
 
 `WordCloudLayout.make(graph:size:)` is deterministic and runs once per filter or
 size change, never per frame.
@@ -385,7 +401,7 @@ Colour encodes provenance: a tag shared by multiple providers is cyan (the bridg
 accent), a single-provider tag uses that provider’s colour, and a tag with no
 resolved neighbours falls back to the topic palette.
 
-### Rendering and interaction
+#### Rendering and interaction
 
 `WordCloudRenderer` draws three faint orbit rings, a tick ring, and a radial
 accent field, then the words centred on their layout rects. Selection and hover
@@ -396,6 +412,48 @@ Hit testing is rect containment on the cached layout, preferring the smallest
 rect under the pointer. Clicking a word selects its tag node, which opens the
 same tag inspector and isolates exactly the same thread set as clicking the
 diamond on the map. Clicking empty space deselects.
+
+### Hybrid cloud (⌘5)
+
+The hybrid lens runs inside `GraphCanvasView`, so it keeps the full camera,
+gestures, 2D/3D crossfade, minimap, and hit testing. `MapRenderer` draws the
+constellation skeleton at full strength but suppresses tag diamonds and tag
+labels; the keyword words themselves become the tag representation. A dark
+plate behind each word keeps it readable over the edges.
+
+#### Layout
+
+`HybridWordLayout.make(graph:projection:size:)` runs against the live
+`MapProjection`, which means words follow the force simulation, panning, zoom,
+and 3D orbit.
+
+1. Sort tags by weight as in the free cloud, with a smaller type ramp:
+   `maxFont = clamp(5.2% of the shorter view side, 20 … 38)`.
+2. Project each tag node through `MapProjection`. The projected point is the
+   word's **anchor**, so it inherits the tag's structural position between the
+   conversations that share it.
+3. Try the anchor first. On collision, search a circular spiral outward to at
+   most 30% of the shorter view side; retry at smaller font sizes if needed.
+4. Keep the word rect inside the canvas. Words whose anchors are far off-screen
+   are skipped.
+5. If collision resolution displaced a word by more than 9 pt, draw a dashed
+   tether from the anchor to the word plus a dot at the tag position.
+
+This is the key difference from the free cloud: size still encodes shared
+conversation count, but position encodes graph structure instead of a neutral
+spiral.
+
+#### Rendering and interaction
+
+`HybridWordRenderer` uses the same sizing, colours, glow, underline, and
+deselection behaviour as the free cloud, plus a dark backing plate and text
+shadow for contrast against the full-strength map. Focus follows the map's
+`focusPath`, so selecting a thread keeps its tags bright while unrelated words
+dim.
+
+Hover and click hit testing checks the hybrid word rects first, then falls back
+to the engine's normal node hit test. Clicking a word selects its tag node and
+opens the normal tag inspector.
 
 ---
 
@@ -414,8 +472,10 @@ Implemented in `GraphCanvasView.swift` (gestures/overlays) and `GraphEngine`
 | Hover | hit test → highlight path + hover card + pointing-hand cursor |
 | ⌘0 / fit control | frame all nodes |
 | ⌘3 / 2D–3D control | crossfade modes |
-| ⌘4 / CLOUD control | switch to the word cloud and back |
-| Click a word (cloud) | select its tag node and isolate its threads |
+| ⌘4 / CLOUD control | switch to the free word cloud |
+| ⌘5 / HYBRID control | switch to the constellation-anchored word cloud |
+| Click a word (free cloud) | select its tag node and isolate its threads |
+| Click a word (hybrid) | select its tag node; falls back to normal node hit testing |
 | ⌘F | focus search |
 | Esc | deselect / close inspector |
 
@@ -436,8 +496,10 @@ The engine ticks at 60 Hz but publishes frames adaptively:
 | ambient motion on, app inactive | 2 fps |
 | ambient motion off and nothing moving | event-driven only |
 
-The word cloud is outside the engine loop: its layout is cached, and only the
-optional drift redraws at 15 fps (static when **MOTION** is off).
+The free word cloud is outside the engine loop: its layout is cached, and only
+the optional drift redraws at 15 fps (static when **MOTION** is off). The hybrid
+cloud resolves collisions against the live projection while the constellation is
+being drawn, so it shares the map's camera throttle rather than adding a timer.
 
 Other guards:
 
@@ -488,11 +550,13 @@ Touch points: `NodeKind`, `GraphBuilder`, `HUD.color(for:)`,
 `MapRenderer.drawNodeScaled` + a draw function, `GraphEngine.hitRadius`, and
 `GraphLayout`/`GraphLayout3D` radii. Labels are generic and need no change.
 
-### Extend the word cloud
+### Extend the cloud modes
 
-`WordCloudLayout.make` owns placement and sizing; `WordCloudRenderer` owns the
-passes. Add colour or typography rules in those two types. New data sources
-should continue to arrive as `tagNodes`, so the map and cloud stay in sync.
+`WordCloudLayout.make` owns free-cloud placement and sizing; `WordCloudRenderer`
+owns its passes. `HybridWordLayout.make` owns anchor-relative placement and
+`HybridWordRenderer` owns the hybrid passes and tethers. Add colour or typography
+rules in those types. New data sources should continue to arrive as `tagNodes`,
+so the map and both cloud lenses stay in sync.
 
 ---
 
@@ -509,6 +573,9 @@ should continue to arrive as `tagNodes`, so the map and cloud stay in sync.
   collision-free.
 - Labels are truncated (22 chars for tags, 30–38 for threads) and dropped when
   they collide; zoom in to recover them.
-- The word cloud only shows where shared keywords exist, and only tags that pass
+- The cloud lenses only show where shared keywords exist, and only tags that pass
   the map’s tag budget (§4) — not every word in the archive. Use the topic lens
   or search to narrow a large vocabulary.
+- The hybrid cloud keeps words legible by pushing them away from their anchors;
+  in dense maps the dashed tethers can be long, and a few low-weight words may
+  be dropped when no collision-free spot is found.

@@ -23,7 +23,7 @@ const features = [
   },
   {
     title: 'Vocabulary when you want it',
-    body: 'Press ⌘4 to turn the same filtered tags into a word cloud sized by how many conversations share them. Click a word to isolate its threads.',
+    body: 'Press ⌘4 for a frequency-sized word cloud, or ⌘5 to keep the constellation structure and anchor those words to their tag nodes. Click a word to isolate its threads.',
   },
 ];
 
@@ -81,9 +81,10 @@ export default function Home(): ReactNode {
             <h2>How the visualization works</h2>
             <p>
               By default keywords never drive type size: they become topology — diamonds and
-              hubs — while conversations keep their identity. Press ⌘4 for the alternate word
-              cloud lens. The visualization guide walks through the graph builder, TF-IDF
-              extraction, both layouts, the cameras, the cloud packer, and every renderer pass.
+              hubs — while conversations keep their identity. Press ⌘4 for the free word cloud,
+              or ⌘5 to embed sized words in the constellation. The visualization guide walks
+              through the graph builder, TF-IDF extraction, both layouts, the cameras, the cloud
+              packers, and every renderer pass.
             </p>
           </div>
           <Link className={clsx('button button--primary')} to="/docs/visualization">

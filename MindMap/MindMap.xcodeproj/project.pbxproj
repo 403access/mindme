@@ -11,6 +11,7 @@
 		36DF99A83B51CBFB9F5BBF5B /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */; };
 		3A43E3035137513A9919BE61 /* MindMapCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3B8EA961BD5333122169B4FE /* MindMapCore */; };
 		458911454E0459E3FB1E8D82 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03CCB62197FEC868B6386B5 /* Theme.swift */; };
+		4611D503EE598677C8D12A3A /* HybridWords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FABEE5DA1F5979893067D08 /* HybridWords.swift */; };
 		4642136CC7D1BE404F99F1E2 /* MapRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F26818BD2B4233A0B707255 /* MapRenderer.swift */; };
 		4E2AA918E48D641065430D52 /* Perspective.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0E2B35061C9196EB34CF8D /* Perspective.swift */; };
 		6DDBDA38B940CD7080F955A6 /* MindMapApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */; };
@@ -33,6 +34,7 @@
 		59D9076702BDBAB5B610FDB8 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindMapApp.swift; sourceTree = "<group>"; };
 		7F26818BD2B4233A0B707255 /* MapRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapRenderer.swift; sourceTree = "<group>"; };
+		7FABEE5DA1F5979893067D08 /* HybridWords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HybridWords.swift; sourceTree = "<group>"; };
 		AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		B03CCB62197FEC868B6386B5 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		D8BFE656AFC79B98062506A2 /* WordCloudView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCloudView.swift; sourceTree = "<group>"; };
@@ -62,6 +64,7 @@
 				23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */,
 				55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */,
 				3F632140FF2996A97BD75178 /* HelpView.swift */,
+				7FABEE5DA1F5979893067D08 /* HybridWords.swift */,
 				7F26818BD2B4233A0B707255 /* MapRenderer.swift */,
 				685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */,
 				DE0E2B35061C9196EB34CF8D /* Perspective.swift */,
@@ -178,6 +181,7 @@
 				22AC8C80F774C52D26943709 /* GraphCanvasView.swift in Sources */,
 				F515331EAD77317AECDD0107 /* GraphEngine.swift in Sources */,
 				BA82FAA875CA7528F02AE7EC /* HelpView.swift in Sources */,
+				4611D503EE598677C8D12A3A /* HybridWords.swift in Sources */,
 				4642136CC7D1BE404F99F1E2 /* MapRenderer.swift in Sources */,
 				6DDBDA38B940CD7080F955A6 /* MindMapApp.swift in Sources */,
 				4E2AA918E48D641065430D52 /* Perspective.swift in Sources */,

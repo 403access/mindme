@@ -114,8 +114,16 @@ struct AppCommands: Commands {
 
             Toggle("3D Perspective", isOn: $model.is3D)
                 .keyboardShortcut("3", modifiers: .command)
-            Toggle("Word Cloud", isOn: $model.showWordCloud)
-                .keyboardShortcut("4", modifiers: .command)
+            Toggle("Word Cloud", isOn: Binding(
+                get: { model.viewMode == .cloud },
+                set: { model.viewMode = $0 ? .cloud : .map }
+            ))
+            .keyboardShortcut("4", modifiers: .command)
+            Toggle("Hybrid Cloud", isOn: Binding(
+                get: { model.viewMode == .hybrid },
+                set: { model.viewMode = $0 ? .hybrid : .map }
+            ))
+            .keyboardShortcut("5", modifiers: .command)
             Toggle("Show Tags", isOn: $model.showTags)
             Toggle("Show Labels", isOn: $model.showLabels)
             Toggle("Ambient Motion", isOn: $model.motionEnabled)

@@ -22,7 +22,7 @@ struct RootView: View {
 
                     ZStack {
                         MapBackdrop()
-                        if model.showWordCloud {
+                        if model.viewMode == .cloud {
                             WordCloudView(model: model)
                                 .transition(.opacity)
                         } else {
@@ -32,7 +32,7 @@ struct RootView: View {
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .animation(.easeInOut(duration: 0.22), value: model.showWordCloud)
+                    .animation(.easeInOut(duration: 0.22), value: model.viewMode)
 
                     if let node = model.selectedNode {
                         DetailPanelView(model: model, node: node)
@@ -256,13 +256,7 @@ struct TopBarView: View {
 
             Rectangle().fill(HUD.hairline).frame(width: 1, height: 18)
 
-            HUDIconButton(
-                systemName: model.showWordCloud ? "cloud.fill" : "cloud",
-                help: "Word cloud  ⌘4",
-                active: model.showWordCloud
-            ) {
-                model.toggleWordCloud()
-            }
+            ViewModeControl(selection: $model.viewMode, compact: true)
             HUDIconButton(systemName: "scope", help: "Fit map  ⌘0") {
                 model.engine.requestFit()
             }
@@ -357,29 +351,41 @@ struct StatusBarView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var engine: GraphEngine
 
+    private var statusLabel: String {
+        switch model.viewMode {
+        case .cloud: return "CLOUD LENS"
+        case .hybrid: return "HYBRID LENS"
+        case .map: return engine.frame.isSettling ? "SIMULATING" : "SIGNAL STABLE"
+        }
+    }
+
+    private var statusCounts: String {
+        switch model.viewMode {
+        case .cloud:
+            return "\(Format.count(model.graph.tagNodes.count, "WORD", "WORDS")) · \(Format.count(model.graph.stats.threadCount, "THREAD", "THREADS")) · \(Format.count(model.graph.stats.groupCount, "HUB", "HUBS"))"
+        case .hybrid:
+            return "\(Format.count(model.graph.tagNodes.count, "WORD", "WORDS")) · \(Format.count(model.graph.nodes.count, "NODE", "NODES")) · \(Format.count(model.graph.edges.count, "LINK", "LINKS"))"
+        case .map:
+            return "\(Format.count(model.graph.nodes.count, "NODE", "NODES")) · \(Format.count(model.graph.edges.count, "LINK", "LINKS")) · \(Format.count(model.graph.stats.groupCount, "HUB", "HUBS"))"
+        }
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             HStack(spacing: 7) {
-                StatusDot(color: model.showWordCloud ? HUD.accent : (engine.frame.isSettling ? HUD.accent : HUD.lime), size: 4.5)
-                Text(model.showWordCloud ? "CLOUD LENS" : (engine.frame.isSettling ? "SIMULATING" : "SIGNAL STABLE"))
+                StatusDot(color: model.viewMode.showsCloudWords ? HUD.accent : (engine.frame.isSettling ? HUD.accent : HUD.lime), size: 4.5)
+                Text(statusLabel)
                     .font(HUDFont.micro(7.5))
                     .tracking(1.2)
-                    .foregroundStyle(model.showWordCloud ? HUD.accent.opacity(0.8) : (engine.frame.isSettling ? HUD.accent.opacity(0.8) : HUD.muted))
+                    .foregroundStyle(model.viewMode.showsCloudWords ? HUD.accent.opacity(0.8) : (engine.frame.isSettling ? HUD.accent.opacity(0.8) : HUD.muted))
             }
 
             Rectangle().fill(HUD.hairline).frame(width: 1, height: 10)
 
-            if model.showWordCloud {
-                Text("\(Format.count(model.graph.tagNodes.count, "WORD", "WORDS")) · \(Format.count(model.graph.stats.threadCount, "THREAD", "THREADS")) · \(Format.count(model.graph.stats.groupCount, "HUB", "HUBS"))")
-                    .font(HUDFont.micro(7.5))
-                    .tracking(0.7)
-                    .foregroundStyle(HUD.muted)
-            } else {
-                Text("\(Format.count(model.graph.nodes.count, "NODE", "NODES")) · \(Format.count(model.graph.edges.count, "LINK", "LINKS")) · \(Format.count(model.graph.stats.groupCount, "HUB", "HUBS"))")
-                    .font(HUDFont.micro(7.5))
-                    .tracking(0.7)
-                    .foregroundStyle(HUD.muted)
-            }
+            Text(statusCounts)
+                .font(HUDFont.micro(7.5))
+                .tracking(0.7)
+                .foregroundStyle(HUD.muted)
 
             if let summary = model.lastImportSummary {
                 Text("· \(summary)")
@@ -397,7 +403,7 @@ struct StatusBarView: View {
 
             Spacer()
 
-            Text("⌘F SEARCH   ⌘I IMPORT   ⌘0 FIT   ⌘4 CLOUD   ESC CLOSE")
+            Text("⌘F SEARCH   ⌘I IMPORT   ⌘0 FIT   ⌘4 CLOUD   ⌘5 HYBRID   ESC CLOSE")
                 .font(HUDFont.micro(7))
                 .tracking(0.6)
                 .foregroundStyle(HUD.dim)

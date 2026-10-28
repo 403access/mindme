@@ -399,6 +399,60 @@ struct NeonToggle: View {
     }
 }
 
+// MARK: - View mode
+
+struct ViewModeControl: View {
+    @Binding var selection: VisualizationMode
+    var compact: Bool = false
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(VisualizationMode.allCases) { mode in
+                Button {
+                    selection = mode
+                } label: {
+                    HStack(spacing: compact ? 0 : 4) {
+                        Image(systemName: mode.icon)
+                            .font(.system(size: compact ? 9.5 : 8.5, weight: .semibold))
+                        if !compact {
+                            Text(mode.label)
+                                .font(HUDFont.micro(7))
+                                .tracking(0.6)
+                                .lineLimit(1)
+                        }
+                    }
+                    .foregroundStyle(selection == mode ? HUD.accent : HUD.muted)
+                    .frame(maxWidth: .infinity)
+                    .frame(width: compact ? 26 : nil, height: compact ? 26 : 27)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(selection == mode ? HUD.accent.opacity(0.12) : Color.clear)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                    .strokeBorder(
+                                        selection == mode ? HUD.accent.opacity(0.35) : Color.clear,
+                                        lineWidth: 0.7
+                                    )
+                            )
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(mode.title)
+            }
+        }
+        .padding(2)
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(Color(hex: 0x050A12).opacity(0.82))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .strokeBorder(HUD.hairline, lineWidth: 0.8)
+                )
+        )
+    }
+}
+
 // MARK: - Formatting
 
 enum Format {

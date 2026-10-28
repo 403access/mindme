@@ -21,6 +21,7 @@ struct GraphCanvasView: View {
             let size = proxy.size
             ZStack {
                 Canvas(opaque: false, colorMode: .extendedLinear) { context, canvasSize in
+                    let hybrid = model.viewMode == .hybrid
                     let renderer = MapRenderer(
                         graph: model.graph,
                         positions: engine.frame.positions,
@@ -33,9 +34,25 @@ struct GraphCanvasView: View {
                         selectedNodeID: model.selectedNodeID,
                         hoveredNodeID: model.hoveredNodeID,
                         showLabels: model.showLabels,
-                        motion: model.motionEnabled
+                        motion: model.motionEnabled,
+                        hybridWords: hybrid
                     )
-                    renderer.draw(into: &context)
+                    if hybrid {
+                        renderer.draw(into: &context)
+                        let layout = HybridWordLayout.make(
+                            graph: model.graph,
+                            projection: engine.projection,
+                            size: canvasSize
+                        )
+                        HybridWordRenderer(
+                            graph: model.graph,
+                            layout: layout,
+                            selectedNodeID: model.selectedNodeID,
+                            hoveredNodeID: model.hoveredNodeID
+                        ).draw(into: &context)
+                    } else {
+                        renderer.draw(into: &context)
+                    }
                 }
                 .contentShape(Rectangle())
                 .gesture(panGesture(size: size))
@@ -44,7 +61,7 @@ struct GraphCanvasView: View {
                     switch phase {
                     case .active(let location):
                         hoverLocation = location
-                        updateHover(at: location)
+                        updateHover(at: location, size: size)
                     case .ended:
                         hoverLocation = nil
                         model.hoveredNodeID = nil
@@ -102,6 +119,8 @@ struct GraphCanvasView: View {
                 }
             }
             .onDisappear {
+                hoverLocation = nil
+                setCursor(hand: false)
                 engine.stop()
             }
         }
@@ -118,13 +137,15 @@ struct GraphCanvasView: View {
                     .fill(HUD.lime)
                     .frame(width: 4.5, height: 4.5)
                     .shadow(color: HUD.lime.opacity(0.9), radius: 4)
-                Text(model.is3D ? "SPATIAL TOPOLOGY" : (model.grouping == .provider ? "SOURCE TOPOLOGY" : (model.grouping == .topic ? "TOPIC CONSTELLATIONS" : "TEMPORAL SHELLS")))
+                Text(model.viewMode == .hybrid ? "HYBRID CLOUD" : (model.is3D ? "SPATIAL TOPOLOGY" : (model.grouping == .provider ? "SOURCE TOPOLOGY" : (model.grouping == .topic ? "TOPIC CONSTELLATIONS" : "TEMPORAL SHELLS"))))
                     .font(HUDFont.micro(8))
                     .tracking(1.4)
                     .foregroundStyle(HUD.textSoft)
                 Text("·")
                     .foregroundStyle(HUD.dim)
-                Text("\(Format.count(model.graph.stats.groupCount, "HUB", "HUBS")) / \(Format.count(model.graph.stats.threadCount, "THREAD", "THREADS"))")
+                Text(model.viewMode == .hybrid
+                     ? "\(Format.count(model.graph.tagNodes.count, "WORD", "WORDS")) / \(Format.count(model.graph.stats.threadCount, "THREAD", "THREADS"))"
+                     : "\(Format.count(model.graph.stats.groupCount, "HUB", "HUBS")) / \(Format.count(model.graph.stats.threadCount, "THREAD", "THREADS"))")
                     .font(HUDFont.micro(8))
                     .tracking(0.8)
                     .foregroundStyle(HUD.muted)
@@ -177,29 +198,7 @@ struct GraphCanvasView: View {
 
         // Camera controls, top-right
         VStack(spacing: 7) {
-            Button {
-                model.showWordCloud = true
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "cloud")
-                        .font(.system(size: 8.5, weight: .semibold))
-                    Text("CLOUD")
-                        .font(HUDFont.micro(7.5))
-                        .tracking(0.4)
-                }
-                .foregroundStyle(HUD.textSoft)
-                .frame(width: 56, height: 28)
-                .background(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(Color.white.opacity(0.02))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .strokeBorder(HUD.hairline, lineWidth: 0.8)
-                        )
-                )
-            }
-            .buttonStyle(.plain)
-            .help("Switch to word cloud  ⌘4")
+            ViewModeControl(selection: $model.viewMode, compact: true)
 
             Button {
                 model.toggle3D()
@@ -381,7 +380,10 @@ struct GraphCanvasView: View {
                 let total = hypot(value.translation.width, value.translation.height)
                 if total <= 4 {
                     let point = origin
-                    if let node = engine.hitTest(at: point) {
+                    if model.viewMode == .hybrid,
+                       let word = hybridLayout(size: size).word(at: point) {
+                        model.select(word.id)
+                    } else if let node = engine.hitTest(at: point) {
                         model.select(node.id)
                     } else {
                         model.deselect()
@@ -410,12 +412,29 @@ struct GraphCanvasView: View {
         engine.zoom(by: factor, around: point)
     }
 
-    private func updateHover(at location: CGPoint) {
+    private func updateHover(at location: CGPoint, size: CGSize) {
+        if model.viewMode == .hybrid,
+           let word = hybridLayout(size: size).word(at: location) {
+            if model.hoveredNodeID != word.id {
+                model.hoveredNodeID = word.id
+            }
+            setCursor(hand: true)
+            return
+        }
         let node = engine.hitTest(at: location)
         if model.hoveredNodeID != node?.id {
             model.hoveredNodeID = node?.id
         }
         setCursor(hand: node != nil)
+    }
+
+    private func hybridLayout(size: CGSize) -> HybridWordLayout {
+        guard model.viewMode == .hybrid, !model.graph.isEmpty else { return .empty }
+        return HybridWordLayout.make(
+            graph: model.graph,
+            projection: engine.projection,
+            size: size
+        )
     }
 
     private func setCursor(hand: Bool) {
@@ -527,6 +546,11 @@ struct HoverCard: View {
                 }
                 if node.kind == .thread {
                     Text("CLICK TO INSPECT")
+                        .font(HUDFont.micro(7))
+                        .tracking(0.6)
+                        .foregroundStyle(HUD.accent.opacity(0.8))
+                } else if node.kind == .tag {
+                    Text("CLICK TO ISOLATE")
                         .font(HUDFont.micro(7))
                         .tracking(0.6)
                         .foregroundStyle(HUD.accent.opacity(0.8))

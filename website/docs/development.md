@@ -57,7 +57,8 @@ MindMap/
 │   ├── GraphEngine.swift    simulation clock, 2D/3D cameras, hit testing, render throttling
 │   ├── Perspective.swift    perspective camera, projection, 3D fit
 │   ├── MapRenderer.swift    Canvas renderer (2D/3D nodes, edges, labels, depth)
-│   ├── WordCloudView.swift  word-cloud layout, renderer, hover cards, empty state
+│   ├── WordCloudView.swift  free word-cloud layout, renderer, hover cards, empty state
+│   ├── HybridWords.swift    constellation-anchored word layout and renderer
 │   ├── GraphCanvasView.swift gestures, minimap, orbit gizmo, hover cards, empty state
 │   ├── SidebarView.swift    filter matrix
 │   ├── DetailPanelView.swift thread/cluster inspector
@@ -83,8 +84,10 @@ linked unchanged from a future iOS target. The rendering layer is SwiftUI `Canva
   providers.
 - **Bright path** — the selected thread, its cluster, and its tags; everything else dims to
   keep context.
-- **Word cloud (⌘4)** — the same filtered tag nodes as sized words. Larger type means more
-  conversations share that keyword; click a word to isolate its threads.
+- **Word cloud (⌘4)** — the same filtered tag nodes as sized words in a free spiral layout.
+  Larger type means more conversations share that keyword; click a word to isolate its threads.
+- **Hybrid cloud (⌘5)** — the word cloud embedded in the constellation. Words start at their
+  tag node's projected position and move only as far as needed to avoid collisions.
 
 See [Visualization](./visualization.md) for the implementation details.
 
@@ -94,7 +97,8 @@ See [Visualization](./visualization.md) for the implementation details.
 | --- | --- |
 | Drag / pinch (2D) | Pan / zoom (trackpad magnify or the +/− controls) |
 | **⌘3** or the **2D/3D** map control | Toggle the spatial perspective |
-| **⌘4** or the **CLOUD** control | Switch between the constellation and the word cloud |
+| **⌘4** or the **CLOUD** control | Switch to the free word cloud |
+| **⌘5** or the **HYBRID** control | Show the word cloud inside the constellation structure |
 | Drag (3D) | Orbit the camera around the root |
 | **Shift**-drag (3D) | Pan the camera target across the scene |
 | Pinch / +− (3D) | Move the camera closer or farther |
@@ -105,7 +109,8 @@ See [Visualization](./visualization.md) for the implementation details.
 | **⌘0** | Fit the whole map |
 | **⌘F** | Focus the search field |
 | **⌘I** | Import exports |
-| **⌘4** | Toggle the word cloud |
+| **⌘4** | Toggle the free word cloud |
+| **⌘5** | Toggle the hybrid cloud |
 | **⌘R** | Reload the local library |
 | **Esc** | Deselect / close the inspector |
 
@@ -118,8 +123,9 @@ and projecting it is cheap, and the same throttle applies.
 All node sizes and labels are drawn in screen space so zoom changes spacing but never
 legibility, and the canvas only publishes a frame when something actually changed. Toggle
 **MOTION** off in the sidebar (or *Map → Ambient Motion*) for an essentially static,
-near-zero-idle-CPU map. The word cloud packs its words once per filter/size change and only
-runs a gentle 15 fps drift while it is visible.
+near-zero-idle-CPU map. The free word cloud packs its words once per filter/size change and
+only runs a gentle 15 fps drift while it is visible. The hybrid cloud re-resolves word
+collisions against the live projection each frame, keeping words tethered to the map.
 
 ## Privacy
 

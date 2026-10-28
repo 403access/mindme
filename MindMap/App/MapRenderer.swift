@@ -17,6 +17,7 @@ struct MapRenderer {
     let hoveredNodeID: String?
     let showLabels: Bool
     let motion: Bool
+    let hybridWords: Bool
 
     private var projection: MapProjection {
         MapProjection(
@@ -479,11 +480,13 @@ struct MapRenderer {
 
     private func drawNodes(_ context: inout GraphicsContext) {
         if modeBlend > 0.01 {
-            let ordered = graph.nodes.compactMap { node -> (MindMapNode, ProjectedPoint)? in
-                guard let projected = projection(for: node.id) else { return nil }
-                return (node, projected)
-            }
-            .sorted { $0.1.depth > $1.1.depth }
+            let ordered = graph.nodes
+                .filter { !(hybridWords && $0.kind == .tag) }
+                .compactMap { node -> (MindMapNode, ProjectedPoint)? in
+                    guard let projected = projection(for: node.id) else { return nil }
+                    return (node, projected)
+                }
+                .sorted { $0.1.depth > $1.1.depth }
 
             for (node, projected) in ordered {
                 let point = CGPoint(
@@ -494,9 +497,11 @@ struct MapRenderer {
             }
         } else {
             // Tags sit behind the conversations on the flat map.
-            for node in graph.tagNodes {
-                guard let point = displayPoint(node.id) else { continue }
-                drawNodeScaled(node, at: point, scale: 1, alpha: 1, context: &context)
+            if !hybridWords {
+                for node in graph.tagNodes {
+                    guard let point = displayPoint(node.id) else { continue }
+                    drawNodeScaled(node, at: point, scale: 1, alpha: 1, context: &context)
+                }
             }
             for node in graph.groupNodes {
                 guard let point = displayPoint(node.id) else { continue }
@@ -906,7 +911,9 @@ struct MapRenderer {
                 let focused = isHighlighted(node.id)
                 let notable = topThreadIDs.contains(node.id)
                 let shouldShow: Bool
-                if spatial {
+                if hybridWords {
+                    shouldShow = selected || hovered
+                } else if spatial {
                     shouldShow = selected || hovered
                 } else {
                     shouldShow =
@@ -929,7 +936,7 @@ struct MapRenderer {
                 ))
             }
 
-            if spatial || zoom >= 1.05 || selectedNodeID != nil {
+            if !hybridWords, spatial || zoom >= 1.05 || selectedNodeID != nil {
                 for node in graph.tagNodes {
                     guard let projected = projection(for: node.id) else { continue }
                     let selected = selectedNodeID == node.id

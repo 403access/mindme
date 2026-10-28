@@ -365,6 +365,8 @@ struct SidebarView: View {
         VStack(alignment: .leading, spacing: 9) {
             SectionHeader(index: "05", title: "Signal")
 
+            ViewModeControl(selection: $model.viewMode)
+
             HStack(spacing: 5) {
                 signalToggle("TAGS", icon: "diamond", isOn: model.showTags) {
                     model.showTags.toggle()
@@ -374,9 +376,6 @@ struct SidebarView: View {
                 }
                 signalToggle("MOTION", icon: "waveform.path", isOn: model.motionEnabled) {
                     model.motionEnabled.toggle()
-                }
-                signalToggle("CLOUD", icon: "cloud", isOn: model.showWordCloud) {
-                    model.toggleWordCloud()
                 }
             }
         }

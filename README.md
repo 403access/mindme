@@ -19,7 +19,8 @@ The same constellation in spatial mode:
 - **Inspects everything** — select a node to read the transcript, see metadata, jump to the source in the browser, or click a tag to isolate every conversation behind it.
 - **Feels alive** — an animated force-directed constellation with neon HUD panels, energy pulses along active paths, a minimap, and an animated camera.
 - **2D or 3D** — flip the map into a spatial perspective with a z-axis, depth-sorted nodes, a perspective floor, and an orbit camera. Drag to orbit, Shift-drag to pan, pinch or use +/− to zoom.
-- **Word cloud** — switch the same filtered library into a semantic cloud where keywords are sized by how many conversations share them. Click a word to isolate its threads. Toggle with **⌘4**, the **CLOUD** control, or the sidebar.
+- **Word cloud** — switch the same filtered library into a semantic cloud where keywords are sized by how many conversations share them. Click a word to isolate its threads. Toggle with **⌘4**, the **CLOUD** view control, or the sidebar.
+- **Hybrid cloud** — keep the constellation's root, hubs, threads, and links while sizing and anchoring the words to their tag nodes. The map structure stays visible beneath the vocabulary. Toggle with **⌘5**, the **HYBRID** control, or the sidebar.
 - **Stays on your Mac** — no network calls, no accounts, no telemetry. Data is normalized into `~/Library/Application Support/MindMap/library.json`.
 
 A curated **demo dataset** is generated on first launch so the map is explorable before importing anything. Demo threads are labelled and can be cleared with one click; the first real import clears them automatically.
@@ -124,7 +125,8 @@ Interaction:
 | --- | --- |
 | Drag / pinch (2D) | Pan / zoom (trackpad magnify or the +/- controls) |
 | **⌘3** or the **2D/3D** map control | Toggle the spatial perspective |
-| **⌘4** or the **CLOUD** control | Switch between the constellation and the word cloud |
+| **⌘4** or the **CLOUD** control | Switch to the free word cloud |
+| **⌘5** or the **HYBRID** control | Show the word cloud inside the constellation structure |
 | Drag (3D) | Orbit the camera around the root |
 | **Shift**-drag (3D) | Pan the camera target across the scene |
 | Pinch / +− (3D) | Move the camera closer or farther |
@@ -136,13 +138,14 @@ Interaction:
 | **⌘F** | Focus the search field |
 | **⌘I** | Import exports |
 | **⌘3** | Toggle 3D perspective |
-| **⌘4** | Toggle the word cloud |
+| **⌘4** | Toggle the free word cloud |
+| **⌘5** | Toggle the hybrid cloud |
 | **⌘R** | Reload the local library |
 | **Esc** | Deselect / close the inspector |
 
 ## Architecture
 
-> **Deep dive:** [website/docs/visualization.md](website/docs/visualization.md) documents the graph model, keyword pipeline, both layouts, cameras, renderer, and extension points. The default visualization is a node-link constellation — keywords become diamond tag nodes and topic hubs, not sized text. The opt-in word cloud is a separate lens over the same filtered tag data.
+> **Deep dive:** [website/docs/visualization.md](website/docs/visualization.md) documents the graph model, keyword pipeline, both layouts, cameras, renderer, and extension points. The default visualization is a node-link constellation — keywords become diamond tag nodes and topic hubs, not sized text. Two opt-in cloud lenses sit over the same filtered tag data: a free word cloud (⌘4) and a hybrid cloud (⌘5) anchored to the constellation.
 
 ```
 MindMap/
@@ -152,7 +155,8 @@ MindMap/
 │   ├── GraphEngine.swift    simulation clock, 2D/3D cameras, hit testing, render throttling
 │   ├── Perspective.swift    perspective camera, projection, 3D fit
 │   ├── MapRenderer.swift    Canvas renderer (2D/3D nodes, edges, labels, depth)
-│   ├── WordCloudView.swift  word-cloud layout, renderer, hover cards, empty state
+│   ├── WordCloudView.swift  free word-cloud layout, renderer, hover cards, empty state
+│   ├── HybridWords.swift    constellation-anchored word layout and renderer
 │   ├── GraphCanvasView.swift gestures, minimap, orbit gizmo, hover cards, empty state
 │   ├── SidebarView.swift    filter matrix
 │   ├── DetailPanelView.swift thread/cluster inspector
@@ -166,7 +170,7 @@ MindMap/
     └── Demo/                deterministic demo archive
 ```
 
-**Performance notes:** the 2D force simulation runs at 60 Hz only while settling (about six seconds), then the renderer drops to a 10 fps ambient clock. The 3D layout is deterministic and static; orbiting and projecting it is cheap, and the same throttle applies. The word cloud packs words once per filter/size change and only animates a gentle 15 fps drift while it is on screen. All node sizes and labels are drawn in screen space so zoom changes spacing but never legibility, and the canvas only publishes a frame when something actually changed. Toggle **MOTION** off in the sidebar (or *Map → Ambient Motion*) for an essentially static, near-zero-idle-CPU map.
+**Performance notes:** the 2D force simulation runs at 60 Hz only while settling (about six seconds), then the renderer drops to a 10 fps ambient clock. The 3D layout is deterministic and static; orbiting and projecting it is cheap, and the same throttle applies. The free word cloud packs words once per filter/size change and only animates a gentle 15 fps drift while it is on screen. The hybrid cloud resolves word collisions against the live projection each frame so words stay tethered to their moving tag nodes. All node sizes and labels are drawn in screen space so zoom changes spacing but never legibility, and the canvas only publishes a frame when something actually changed. Toggle **MOTION** off in the sidebar (or *Map → Ambient Motion*) for an essentially static, near-zero-idle-CPU map.
 
 **Privacy:** there is no networking code in the app. Export files and the OpenCode database are parsed locally and normalized into a JSON library in Application Support. Use *File → Reveal Library in Finder* to inspect or delete it.
 

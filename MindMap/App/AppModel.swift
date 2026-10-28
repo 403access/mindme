@@ -49,6 +49,42 @@ struct ToastMessage: Identifiable, Equatable {
     var kind: Kind = .info
 }
 
+// MARK: - Visualization mode
+
+enum VisualizationMode: String, CaseIterable, Identifiable {
+    case map
+    case cloud
+    case hybrid
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .map: return "MAP"
+        case .cloud: return "CLOUD"
+        case .hybrid: return "HYBRID"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .map: return "Constellation"
+        case .cloud: return "Word Cloud"
+        case .hybrid: return "Hybrid Cloud"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .map: return "point.3.connected.trianglepath.dotted"
+        case .cloud: return "cloud"
+        case .hybrid: return "circle.hexagongrid"
+        }
+    }
+
+    var showsCloudWords: Bool { self != .map }
+}
+
 // MARK: - App model
 
 @MainActor
@@ -82,11 +118,11 @@ final class AppModel: ObservableObject {
     // View toggles
     @Published var showLabels: Bool = true
     @Published var motionEnabled: Bool = true
-    @Published var showWordCloud: Bool = false {
+    @Published var viewMode: VisualizationMode = .map {
         didSet {
-            // The cloud is drawn from shared tag nodes, so tags must be part of
-            // the graph while that lens is active.
-            if showWordCloud, !showTags { showTags = true }
+            // Both cloud lenses are drawn from shared tag nodes, so tags must
+            // be part of the graph while either one is active.
+            if viewMode.showsCloudWords, !showTags { showTags = true }
         }
     }
     @Published var is3D: Bool = false {
@@ -278,10 +314,6 @@ final class AppModel: ObservableObject {
 
     func toggle3D() {
         is3D.toggle()
-    }
-
-    func toggleWordCloud() {
-        showWordCloud.toggle()
     }
 
     // MARK: - Import
