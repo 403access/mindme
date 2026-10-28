@@ -63,7 +63,7 @@ struct HelpView: View {
                             ("INSPECT", "Click any conversation node or thread in the sidebar to open its transcript."),
                             ("TAGS", "Shared keyword nodes link conversations across providers. Click one to see every thread behind it."),
                             ("SPEND", "Opt-in cost heat for OpenCode archives. Turn on COST in the Signal panel or Map → Show Spend Heat. Hubs glow from mint to coral, show dollar totals, and draw a gauge for their share of the most expensive region."),
-                            ("FILTERS", "Combine source toggles, a time window, and a text query. The map rebuilds instantly.")
+                            ("SEARCH", "Type to highlight matching conversations and their paths in place. Press Return or use ISOLATE to filter the map down to the hits; SHOW ALL restores the full map.")
                         ]
                     )
 

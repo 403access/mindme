@@ -382,7 +382,7 @@ Labels are deliberately conservative to avoid a hairball.
 
 | Node | Shown when (2D) | Shown when (3D) |
 | --- | --- | --- |
-| thread | selected/hovered, or zoom ≥ 0.98 if in focus path, or zoom ≥ 1.35 | selected/hovered only |
+| thread | selected/hovered/search-matched, or zoom ≥ 0.98 if in focus path, or zoom ≥ 1.35 | selected/hovered/search-matched |
 | tag | selected, or zoom ≥ 1.7 and weight ≥ 4 | selected only |
 | group | always, drawn toward the root | always |
 
@@ -397,6 +397,14 @@ if its rect intersects an already-placed rect. Backgrounds are filled at
 frame in `GraphCanvasView` and passed into `MapRenderer`, so per-edge and
 per-node checks are set lookups; everything else is dimmed rather than removed,
 preserving spatial context.
+
+Search reuses the same path mechanism without rebuilding the graph. `AppModel`
+resolves the query against the library after a 90 ms debounce and publishes
+`searchMatchNodeIDs` (amber-ringed threads), `searchHighlightNodeIDs` (their
+hubs, tags, and root), and `searchWordIDs` (tags for the cloud lenses). When no
+node is selected or hovered, that path becomes the focus set, so the full map
+stays visible while non-matches dim. Isolate mode instead feeds the query into
+`GraphFilters` and rebuilds the graph, exactly like the source/time filters.
 
 ---
 
@@ -538,6 +546,8 @@ Implemented in `GraphCanvasView.swift` (gestures/overlays) and `GraphEngine`
 | ⌘5 / HYBRID control | switch to the constellation-anchored word cloud |
 | Click a word (free cloud) | select its tag node and isolate its threads |
 | Click a word (hybrid) | select its tag node; falls back to normal node hit testing |
+| Type in search | highlight matching threads and their hub/tag paths in place |
+| Return in search | isolate the map to matching threads; SHOW ALL restores the full map |
 | ⌘F | focus search |
 | Esc | deselect / close inspector |
 

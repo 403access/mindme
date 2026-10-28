@@ -23,9 +23,11 @@ struct GraphCanvasView: View {
             ZStack {
                 Canvas(opaque: false, colorMode: .extendedLinear) { context, canvasSize in
                     let hybrid = model.viewMode == .hybrid
-                    let focusPath = model.graph.focusPath(
-                        for: model.selectedNodeID ?? model.hoveredNodeID
-                    )
+                    let baseFocusID = model.selectedNodeID ?? model.hoveredNodeID
+                    let searchFocus = baseFocusID == nil && model.isSearchHighlightActive
+                    let focusPath = searchFocus
+                        ? model.searchHighlightNodeIDs
+                        : model.graph.focusPath(for: baseFocusID)
                     let renderer = MapRenderer(
                         graph: model.graph,
                         positions: engine.frame.positions,
@@ -42,7 +44,9 @@ struct GraphCanvasView: View {
                         showSpend: model.showSpend,
                         motion: model.motionEnabled,
                         hybridWords: hybrid,
-                        focusPath: focusPath
+                        focusPath: focusPath,
+                        searchMatchIDs: searchFocus ? model.searchMatchNodeIDs : [],
+                        searchFocusActive: searchFocus
                     )
                     renderer.draw(into: &context)
                     if hybrid {
@@ -57,7 +61,9 @@ struct GraphCanvasView: View {
                             layout: layout,
                             selectedNodeID: model.selectedNodeID,
                             hoveredNodeID: model.hoveredNodeID,
-                            focusPath: focusPath
+                            focusPath: focusPath,
+                            searchHighlightIDs: searchFocus ? model.searchWordIDs : [],
+                            searchFocusActive: searchFocus
                         ).draw(into: &context)
                     }
                 }
@@ -172,11 +178,17 @@ struct GraphCanvasView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 7.5, weight: .bold))
-                    Text("FILTER: \(model.searchText.uppercased())")
+                    Text(model.searchIsolation
+                         ? "FILTER: \(model.searchText.uppercased())"
+                         : "MATCH: \(model.searchText.uppercased())")
                         .font(HUDFont.micro(7.5))
                         .tracking(0.7)
+                    Text("· \(model.searchHitCount)")
+                        .font(HUDFont.micro(7.5))
+                        .tracking(0.5)
+                        .opacity(0.75)
                 }
-                .foregroundStyle(HUD.amber)
+                .foregroundStyle(model.searchHitCount > 0 ? HUD.amber : HUD.muted)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)
                 .background(

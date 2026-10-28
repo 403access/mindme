@@ -25,6 +25,10 @@ final class MapRenderer {
     let motion: Bool
     let hybridWords: Bool
     let focusPath: Set<String>
+    /// Threads matched by the live query. Drawn with an amber pulse.
+    let searchMatchIDs: Set<String>
+    /// True when search (rather than selection) is dimming the map.
+    let searchFocusActive: Bool
 
     init(
         graph: MindMapGraph,
@@ -42,7 +46,9 @@ final class MapRenderer {
         showSpend: Bool,
         motion: Bool,
         hybridWords: Bool,
-        focusPath: Set<String>
+        focusPath: Set<String>,
+        searchMatchIDs: Set<String> = [],
+        searchFocusActive: Bool = false
     ) {
         self.graph = graph
         self.positions = positions
@@ -60,6 +66,8 @@ final class MapRenderer {
         self.motion = motion
         self.hybridWords = hybridWords
         self.focusPath = focusPath
+        self.searchMatchIDs = searchMatchIDs
+        self.searchFocusActive = searchFocusActive
     }
 
     private lazy var projection = MapProjection(
@@ -100,6 +108,8 @@ final class MapRenderer {
 
     private var focusID: String? { selectedNodeID ?? hoveredNodeID }
     private var focusSet: Set<String> { focusPath }
+    /// Search dimming only applies when nothing more specific is focused.
+    private var hasFocus: Bool { focusID != nil || searchFocusActive }
 
     // MARK: - Entry point
 
@@ -186,11 +196,11 @@ final class MapRenderer {
     }
 
     private func isHighlighted(_ id: String) -> Bool {
-        focusID == nil || focusSet.contains(id)
+        !hasFocus || focusSet.contains(id)
     }
 
     private func isDimmed(_ id: String) -> Bool {
-        focusID != nil && !focusSet.contains(id)
+        hasFocus && !focusSet.contains(id)
     }
 
 
@@ -427,7 +437,7 @@ final class MapRenderer {
     }
 
     private func drawEdges(_ context: inout GraphicsContext) {
-        let focusActive = focusID != nil
+        let focusActive = hasFocus
         var pulseBudget = focusActive ? 90 : 14
 
         for (index, edge) in graph.edges.enumerated() {
@@ -837,7 +847,7 @@ final class MapRenderer {
                 )),
                 with: .color(color.opacity(selected ? 0.055 : 0.028))
             )
-            if focusID != nil {
+            if hasFocus {
                 context.fill(
                     Path(ellipseIn: CGRect(
                         x: point.x - glow,
@@ -871,6 +881,34 @@ final class MapRenderer {
             )),
             with: .color(Color.white.opacity((selected ? 0.95 : 0.55) * presence))
         )
+
+        // Search hits keep a slow amber pulse so they read as matches even
+        // before the query is isolated. Motion off leaves a steady marker.
+        if searchFocusActive, searchMatchIDs.contains(node.id), !dimmed {
+            let pulse = motion ? 0.5 + 0.5 * sin(time * 2.2 + Double(StableID.hash(node.id) % 628) / 100) : 0.65
+            let ring = radius + 5.5 + CGFloat(pulse * 2.2)
+            var circle = Path()
+            circle.addEllipse(in: CGRect(
+                x: point.x - ring,
+                y: point.y - ring,
+                width: ring * 2,
+                height: ring * 2
+            ))
+            context.fill(
+                Path(ellipseIn: CGRect(
+                    x: point.x - ring - 2,
+                    y: point.y - ring - 2,
+                    width: (ring + 2) * 2,
+                    height: (ring + 2) * 2
+                )),
+                with: .color(HUD.amber.opacity(0.05 + 0.06 * pulse))
+            )
+            context.stroke(
+                circle,
+                with: .color(HUD.amber.opacity(0.45 + 0.4 * pulse)),
+                lineWidth: 1.0
+            )
+        }
 
         if selected {
             let ring = radius + 7
@@ -1034,21 +1072,25 @@ final class MapRenderer {
                     .prefix(6)
                     .map(\.id)
             )
+            // A broad query can hit hundreds of threads. Past a small set,
+            // let the rings carry the signal and keep labels tied to zoom.
+            let matchLabelsEnabled = searchMatchIDs.count <= 60
 
             for node in graph.threadNodes {
                 guard let projected = projection(for: node.id) else { continue }
                 let selected = selectedNodeID == node.id
                 let hovered = hoveredNodeID == node.id
                 let focused = isHighlighted(node.id)
+                let matched = searchFocusActive && matchLabelsEnabled && searchMatchIDs.contains(node.id)
                 let notable = topThreadIDs.contains(node.id)
                 let shouldShow: Bool
                 if hybridWords {
-                    shouldShow = selected || hovered
+                    shouldShow = selected || hovered || matched
                 } else if spatial {
-                    shouldShow = selected || hovered
+                    shouldShow = selected || hovered || matched
                 } else {
                     shouldShow =
-                        selected || hovered ||
+                        selected || hovered || matched ||
                         (zoom >= 0.98 && focused) ||
                         (zoom >= 1.35)
                 }
@@ -1057,7 +1099,7 @@ final class MapRenderer {
                     x: projected.point.x,
                     y: projected.point.y + amplitude(node.id)
                 )
-                let priority = selected ? 1000.0 : hovered ? 900.0 : (notable ? 44.0 : 10.0) + node.weight
+                let priority = selected ? 1000.0 : hovered ? 900.0 : matched ? 220.0 : (notable ? 44.0 : 10.0) + node.weight
                 candidates.append(Candidate(
                     node: node,
                     point: point,
@@ -1092,6 +1134,7 @@ final class MapRenderer {
                 let node = candidate.node
                 let selected = selectedNodeID == node.id
                 let hovered = hoveredNodeID == node.id
+                let matched = searchFocusActive && searchMatchIDs.contains(node.id)
                 let dimmed = isDimmed(node.id)
                 if dimmed { continue }
                 let color = HUD.color(for: node)
@@ -1099,7 +1142,7 @@ final class MapRenderer {
                 let text = shorten(node.label, limit: isTag ? 22 : (zoom > 1.2 || spatial ? 38 : 30))
                 let font = isTag ? HUDFont.micro(7.6) : HUDFont.micro(8.6)
                 let alpha = candidate.alpha * (dimmed ? 0.25 : 1)
-                let textColor: Color = selected || hovered
+                let textColor: Color = selected || hovered || matched
                     ? HUD.text
                     : (isTag ? HUD.textSoft.opacity(0.85 * alpha) : HUD.text.opacity(0.72 * alpha))
 

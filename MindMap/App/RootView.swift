@@ -395,10 +395,12 @@ struct StatusBarView: View {
             }
 
             if !model.searchText.isEmpty {
-                Text("· QUERY MATCHES \(model.visibleThreads.count)")
+                Text(model.searchIsolation
+                     ? "· ISOLATED \(model.searchHitCount) HITS"
+                     : "· HIGHLIGHTING \(model.searchHitCount) HITS")
                     .font(HUDFont.micro(7.5))
                     .tracking(0.7)
-                    .foregroundStyle(HUD.amber.opacity(0.9))
+                    .foregroundStyle(model.searchHitCount > 0 ? HUD.amber.opacity(0.9) : HUD.muted)
             }
 
             Spacer()

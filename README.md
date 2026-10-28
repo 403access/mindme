@@ -16,7 +16,7 @@ The same constellation in spatial mode:
 - **Groups the map** by provider, shared topic keyword, time period, or hierarchical **region**.
 - **Classifies conversations and their parts** — each thread is segmented where the topic actually changes, then scored against an editable region spine (product, technology, legal, finance, design, research, operations, personal) with sub-regions underneath. A mixed project thread can be 60% technology and 40% legal; the inspector shows every segment.
 - **Shows where the money went** — an opt-in **COST** overlay heats regions and sub-regions by provider-reported spend, draws a gauge for each hub's share of the most expensive topic, and puts dollar totals on the map. Built for OpenCode archives; other providers simply have no cost data.
-- **Filters the signal** by source, time window, and free-text query, with a live thread index.
+- **Searches live** — typing highlights matching conversations and their paths in place while the map, cloud, and hybrid lenses stay intact; press **Return** (or **ISOLATE**) to filter the map down to the hits and **SHOW ALL** to bring the full constellation back. Source and time-window filters still rebuild instantly, with a live thread index.
 - **Connects conversations** through shared keyword tags, creating bridges across providers without merging the underlying threads.
 - **Inspects everything** — select a node to read the transcript, see metadata, jump to the source in the browser, or click a tag to isolate every conversation behind it.
 - **Feels alive** — an animated force-directed constellation with neon HUD panels, energy pulses along active paths, a minimap, and an animated camera.
@@ -168,6 +168,8 @@ Interaction:
 | Click a word in the cloud | Isolate its threads and open the tag inspector |
 | **⌘0** | Fit the whole map |
 | **⌘F** | Focus the search field |
+| Type in search | Highlight matches and their paths in place |
+| **Return** in search | Isolate the map to the hits (toggle back with **SHOW ALL**) |
 | **⌘I** | Import exports |
 | **⌘3** | Toggle 3D perspective |
 | **⌘4** | Toggle the free word cloud |

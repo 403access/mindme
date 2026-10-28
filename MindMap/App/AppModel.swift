@@ -123,8 +123,25 @@ final class AppModel: ObservableObject {
         didSet { rebuild() }
     }
     @Published var searchText: String = "" {
-        didSet { scheduleSearchRebuild() }
+        didSet { scheduleSearchUpdate() }
     }
+    /// When false (the default), a query highlights matching conversations in
+    /// place and leaves the rest of the map intact. When true, the map itself
+    /// is filtered down to the hits. Toggle with Return or the sidebar control.
+    @Published var searchIsolation: Bool = false {
+        didSet {
+            guard oldValue != searchIsolation else { return }
+            searchTask?.cancel()
+            rebuild(refit: true)
+        }
+    }
+
+    /// Conversation nodes matched by the current query.
+    @Published private(set) var searchMatchNodeIDs: Set<String> = []
+    /// Every node on a matched conversation's path (hubs, tags, root).
+    @Published private(set) var searchHighlightNodeIDs: Set<String> = []
+    /// Tag nodes shared by at least one matched conversation.
+    @Published private(set) var searchWordIDs: Set<String> = []
 
     // View toggles
     @Published var showLabels: Bool = true
@@ -209,24 +226,58 @@ final class AppModel: ObservableObject {
 
     // MARK: - Rebuild
 
-    private func scheduleSearchRebuild() {
+    /// True while a query is highlighting matches without removing anything
+    /// from the map. Drives the dimming/marker passes in every lens.
+    var isSearchHighlightActive: Bool {
+        !searchIsolation && !searchMatchNodeIDs.isEmpty
+    }
+
+    var searchHitCount: Int { visibleThreads.count }
+
+    private var normalizedSearchQuery: String {
+        TextTools.collapsed(searchText).lowercased()
+    }
+
+    private func scheduleSearchUpdate() {
         searchTask?.cancel()
-        let text = searchText
-        if text.isEmpty {
-            rebuild()
+        if normalizedSearchQuery.isEmpty {
+            // Clearing is instant: restore the unfiltered map or drop the
+            // highlight without waiting for a debounce.
+            if searchIsolation {
+                searchIsolation = false
+            } else {
+                updateSearchState()
+            }
             return
         }
         searchTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 160_000_000)
-            guard !Task.isCancelled else { return }
-            self?.rebuild()
+            // Short enough to feel live while still coalescing fast typing.
+            try? await Task.sleep(nanoseconds: 90_000_000)
+            guard let self, !Task.isCancelled else { return }
+            if self.searchIsolation {
+                self.rebuild()
+            } else {
+                self.updateSearchState()
+            }
         }
+    }
+
+    private var baseFilters: GraphFilters {
+        GraphFilters(
+            providers: providers,
+            searchText: "",
+            since: timeWindow.since,
+            grouping: grouping,
+            includeTags: showTags,
+            maxThreads: 420
+        )
     }
 
     private var filters: GraphFilters {
         GraphFilters(
             providers: providers,
-            searchText: searchText,
+            // Highlight mode keeps the full map; only isolation filters it.
+            searchText: searchIsolation ? searchText : "",
             since: timeWindow.since,
             grouping: grouping,
             includeTags: showTags,
@@ -242,9 +293,7 @@ final class AppModel: ObservableObject {
             topicAnalysis: topicAnalysis
         )
         graphRevision &+= 1
-        visibleThreads = library.threads
-            .filter { filters.matches($0) }
-            .sorted { $0.updatedAt > $1.updatedAt }
+        updateSearchState()
 
         if let selectedNodeID, graph.node(id: selectedNodeID) == nil {
             self.selectedNodeID = nil
@@ -253,6 +302,53 @@ final class AppModel: ObservableObject {
             self.hoveredNodeID = nil
         }
         engine.setGraph(graph, refit: refit)
+    }
+
+    /// Resolves the current query into hits and the node paths that should
+    /// stay lit. Runs on every keystroke (after the debounce), but it never
+    /// rebuilds the graph unless isolation is on.
+    private func updateSearchState() {
+        let base = baseFilters
+        let visible = library.threads.filter { base.matches($0) }
+
+        guard !normalizedSearchQuery.isEmpty else {
+            searchMatchNodeIDs = []
+            searchHighlightNodeIDs = []
+            searchWordIDs = []
+            visibleThreads = visible.sorted { $0.updatedAt > $1.updatedAt }
+            return
+        }
+
+        let search = GraphFilters(
+            providers: providers,
+            searchText: searchText,
+            since: timeWindow.since,
+            grouping: grouping,
+            includeTags: showTags,
+            maxThreads: base.maxThreads
+        )
+        let matches = visible
+            .filter { search.matches($0) }
+            .sorted { $0.updatedAt > $1.updatedAt }
+        visibleThreads = matches
+
+        let adjacency = graph.adjacency
+        var matchNodeIDs: Set<String> = []
+        var highlight: Set<String> = []
+        var words: Set<String> = []
+        for thread in matches {
+            guard let node = graph.node(forThread: thread.id) else { continue }
+            matchNodeIDs.insert(node.id)
+            highlight.formUnion(graph.focusPath(for: node.id))
+            for neighbor in adjacency[node.id] ?? [] {
+                if graph.node(id: neighbor)?.kind == .tag {
+                    words.insert(neighbor)
+                }
+            }
+        }
+        searchMatchNodeIDs = matchNodeIDs
+        searchHighlightNodeIDs = highlight
+        searchWordIDs = words
     }
 
     // MARK: - Selection
@@ -328,6 +424,7 @@ final class AppModel: ObservableObject {
     }
 
     func clearSearch() {
+        searchIsolation = false
         searchText = ""
     }
 
@@ -335,10 +432,22 @@ final class AppModel: ObservableObject {
         searchFocusRequest += 1
     }
 
+    /// Return in the search field: keep the query and filter the map to hits.
+    func applySearchIsolation() {
+        guard !normalizedSearchQuery.isEmpty, !searchIsolation else { return }
+        searchIsolation = true
+    }
+
+    func toggleSearchIsolation() {
+        guard !normalizedSearchQuery.isEmpty else { return }
+        searchIsolation.toggle()
+    }
+
     func resetFilters() {
         providers = Set(Provider.allCases)
         grouping = .provider
         timeWindow = .all
+        searchIsolation = false
         searchText = ""
         showTags = true
         selectedNodeID = nil

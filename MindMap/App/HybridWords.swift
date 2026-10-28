@@ -411,17 +411,22 @@ struct HybridWordRenderer {
     let selectedNodeID: String?
     let hoveredNodeID: String?
     let focusPath: Set<String>
+    var searchHighlightIDs: Set<String> = []
+    var searchFocusActive: Bool = false
 
     func draw(into context: inout GraphicsContext) {
         guard layout.size.width > 0 else { return }
         let focusID = selectedNodeID ?? hoveredNodeID
+        let searchDimming = searchFocusActive && focusID == nil && !searchHighlightIDs.isEmpty
 
         for word in layout.words {
             let selected = word.id == selectedNodeID
             let hovered = word.id == hoveredNodeID
-            let dimmed = focusID != nil && !focusPath.contains(word.id)
-            let alpha = dimmed ? 0.16 : (selected || hovered ? 1.0 : 0.9)
-            let color = selected || hovered ? HUD.text : word.color
+            let matched = searchDimming && searchHighlightIDs.contains(word.id)
+            let dimmed = (focusID != nil && !focusPath.contains(word.id))
+                || (searchDimming && !matched)
+            let alpha = dimmed ? 0.16 : (selected || hovered || matched ? 1.0 : 0.9)
+            let color = selected || hovered || matched ? HUD.text : word.color
 
             // Faint tether back to the tag node when collision resolution has
             // moved the word away from its structural anchor.
@@ -459,17 +464,18 @@ struct HybridWordRenderer {
                 )
                 context.fill(
                     plate,
-                    with: .color(HUD.void.opacity(selected || hovered ? 0.78 : 0.44))
+                    with: .color(HUD.void.opacity(selected || hovered || matched ? 0.78 : 0.44))
                 )
             }
 
             var textContext = context
             textContext.addFilter(.shadow(color: .black.opacity(0.92), radius: 3, x: 0, y: 1))
 
-            if selected || hovered {
+            if selected || hovered || matched {
                 var glow = textContext
                 glow.addFilter(.shadow(
-                    color: word.color.opacity(selected ? 0.85 : 0.55),
+                    color: (matched && !selected && !hovered ? HUD.amber : word.color)
+                        .opacity(selected ? 0.85 : 0.55),
                     radius: selected ? 11 : 7
                 ))
                 glow.draw(resolved, at: word.center, anchor: .center)
@@ -481,7 +487,8 @@ struct HybridWordRenderer {
                 underline.addLine(to: CGPoint(x: word.center.x + underlineWidth / 2, y: underlineY))
                 context.stroke(
                     underline,
-                    with: .color(word.color.opacity(selected ? 0.7 : 0.45)),
+                    with: .color((matched && !selected && !hovered ? HUD.amber : word.color)
+                        .opacity(selected ? 0.7 : 0.45)),
                     lineWidth: 0.9
                 )
             } else {

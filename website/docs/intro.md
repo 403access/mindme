@@ -25,7 +25,9 @@ nodes into sized words. Read [Visualization](./visualization.md) for the full de
   activity, Claude `conversations.json`, HTML Takeout pages (best effort), the local OpenCode
   SQLite library, and a documented generic schema.
 - **Groups the map** by provider, shared topic keyword, or time period.
-- **Filters the signal** by source, time window, and free-text query, with a live thread index.
+- **Searches live** — typing highlights matching conversations and their paths without disturbing
+  the map. Press Return to isolate the hits, or SHOW ALL to restore the full constellation.
+  Source and time-window filters still rebuild instantly, with a live thread index.
 - **Connects conversations** through shared keyword tags, creating bridges across providers
   without merging the underlying threads.
 - **Inspects everything** — select a node to read the transcript, see metadata, jump to the

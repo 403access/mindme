@@ -253,7 +253,7 @@ struct SidebarView: View {
             SectionHeader(
                 index: "04",
                 title: "Query",
-                trailing: model.searchText.isEmpty ? nil : "\(model.visibleThreads.count) HITS"
+                trailing: model.searchText.isEmpty ? nil : "\(model.searchHitCount) HITS"
             )
 
             HStack(spacing: 7) {
@@ -278,7 +278,10 @@ struct SidebarView: View {
                         .tracking(0.7)
                         .foregroundStyle(HUD.text)
                         .focused($searchFocused)
-                        .onSubmit { searchFocused = false }
+                        .onSubmit {
+                            model.applySearchIsolation()
+                            searchFocused = false
+                        }
                 }
                 if !model.searchText.isEmpty {
                     Button {
@@ -305,6 +308,44 @@ struct SidebarView: View {
                             .strokeBorder(searchFocused ? HUD.accent.opacity(0.45) : HUD.hairline, lineWidth: 0.8)
                     )
             )
+
+            if !model.searchText.isEmpty {
+                HStack(spacing: 6) {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(model.searchIsolation ? HUD.accent : HUD.amber)
+                            .frame(width: 3.5, height: 3.5)
+                        Text(model.searchIsolation ? "ISOLATED VIEW" : "LIVE HIGHLIGHT")
+                            .font(HUDFont.micro(7))
+                            .tracking(0.8)
+                            .foregroundStyle(model.searchIsolation ? HUD.accent.opacity(0.9) : HUD.amber.opacity(0.9))
+                    }
+                    Spacer(minLength: 2)
+                    Button {
+                        model.toggleSearchIsolation()
+                    } label: {
+                        Text(model.searchIsolation ? "SHOW ALL" : "ISOLATE")
+                            .font(HUDFont.micro(7))
+                            .tracking(0.8)
+                            .foregroundStyle(HUD.textSoft)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2.5)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.white.opacity(0.035))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .strokeBorder(HUD.hairline, lineWidth: 0.7)
+                                    )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .help(model.searchIsolation
+                          ? "Keep the full map and highlight hits"
+                          : "Filter the map to matching conversations  ⏎")
+                }
+                .padding(.horizontal, 2)
+            }
 
             if !model.visibleThreads.isEmpty {
                 VStack(spacing: 2) {

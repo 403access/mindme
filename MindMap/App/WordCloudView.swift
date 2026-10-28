@@ -206,18 +206,23 @@ struct WordCloudRenderer {
     let hoveredNodeID: String?
     let motion: Bool
     let time: Double
+    var searchHighlightIDs: Set<String> = []
+    var searchFocusActive: Bool = false
 
     func draw(into context: inout GraphicsContext) {
         guard layout.size.width > 0 else { return }
         drawField(&context)
 
         let focusID = selectedNodeID ?? hoveredNodeID
+        let searchDimming = searchFocusActive && focusID == nil && !searchHighlightIDs.isEmpty
         for word in layout.words {
             let selected = word.id == selectedNodeID
             let hovered = word.id == hoveredNodeID
-            let dimmed = focusID != nil && !selected && !hovered
-            let alpha = dimmed ? 0.18 : (selected || hovered ? 1.0 : 0.88)
-            let color = selected || hovered ? HUD.text : word.color
+            let matched = searchDimming && searchHighlightIDs.contains(word.id)
+            let dimmed = (focusID != nil && !selected && !hovered)
+                || (searchDimming && !matched)
+            let alpha = dimmed ? 0.18 : (selected || hovered || matched ? 1.0 : 0.88)
+            let color = selected || hovered || matched ? HUD.text : word.color
             let drift = motion
                 ? sin(time * 0.7 + Double(StableID.hash(word.id) % 6_283) / 1_000) * 1.4
                 : 0
@@ -229,10 +234,11 @@ struct WordCloudRenderer {
                     .foregroundColor(color.opacity(alpha))
             )
 
-            if selected || hovered {
+            if selected || hovered || matched {
                 var glow = context
                 glow.addFilter(.shadow(
-                    color: word.color.opacity(selected ? 0.85 : 0.55),
+                    color: (matched && !selected && !hovered ? HUD.amber : word.color)
+                        .opacity(selected ? 0.85 : 0.55),
                     radius: selected ? 12 : 7
                 ))
                 glow.draw(resolved, at: point, anchor: .center)
@@ -244,7 +250,8 @@ struct WordCloudRenderer {
                 underline.addLine(to: CGPoint(x: point.x + underlineWidth / 2, y: underlineY))
                 context.stroke(
                     underline,
-                    with: .color(word.color.opacity(selected ? 0.7 : 0.45)),
+                    with: .color((matched && !selected && !hovered ? HUD.amber : word.color)
+                        .opacity(selected ? 0.7 : 0.45)),
                     lineWidth: 0.9
                 )
             } else {
@@ -338,12 +345,17 @@ struct WordCloudView: View {
                 if !model.graph.isEmpty && !model.graph.tagNodes.isEmpty {
                     TimelineView(.animation(minimumInterval: 1.0 / 15.0, paused: !model.motionEnabled)) { timeline in
                         Canvas(opaque: false, colorMode: .extendedLinear) { context, _ in
+                            let searchFocus = model.selectedNodeID == nil
+                                && hoveredWordID == nil
+                                && model.isSearchHighlightActive
                             let renderer = WordCloudRenderer(
                                 layout: layout,
                                 selectedNodeID: model.selectedNodeID,
                                 hoveredNodeID: hoveredWordID,
                                 motion: model.motionEnabled,
-                                time: timeline.date.timeIntervalSinceReferenceDate
+                                time: timeline.date.timeIntervalSinceReferenceDate,
+                                searchHighlightIDs: searchFocus ? model.searchWordIDs : [],
+                                searchFocusActive: searchFocus
                             )
                             renderer.draw(into: &context)
                         }
@@ -465,11 +477,17 @@ struct WordCloudView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 7.5, weight: .bold))
-                    Text("FILTER: \(model.searchText.uppercased())")
+                    Text(model.searchIsolation
+                         ? "FILTER: \(model.searchText.uppercased())"
+                         : "MATCH: \(model.searchText.uppercased())")
                         .font(HUDFont.micro(7.5))
                         .tracking(0.7)
+                    Text("· \(model.searchHitCount)")
+                        .font(HUDFont.micro(7.5))
+                        .tracking(0.5)
+                        .opacity(0.75)
                 }
-                .foregroundStyle(HUD.amber)
+                .foregroundStyle(model.searchHitCount > 0 ? HUD.amber : HUD.muted)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 3)
                 .background(
