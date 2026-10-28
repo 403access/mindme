@@ -22,10 +22,17 @@ struct RootView: View {
 
                     ZStack {
                         MapBackdrop()
-                        GraphCanvasView(model: model, engine: model.engine)
+                        if model.showWordCloud {
+                            WordCloudView(model: model)
+                                .transition(.opacity)
+                        } else {
+                            GraphCanvasView(model: model, engine: model.engine)
+                                .transition(.opacity)
+                        }
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .animation(.easeInOut(duration: 0.22), value: model.showWordCloud)
 
                     if let node = model.selectedNode {
                         DetailPanelView(model: model, node: node)
@@ -249,6 +256,13 @@ struct TopBarView: View {
 
             Rectangle().fill(HUD.hairline).frame(width: 1, height: 18)
 
+            HUDIconButton(
+                systemName: model.showWordCloud ? "cloud.fill" : "cloud",
+                help: "Word cloud  ⌘4",
+                active: model.showWordCloud
+            ) {
+                model.toggleWordCloud()
+            }
             HUDIconButton(systemName: "scope", help: "Fit map  ⌘0") {
                 model.engine.requestFit()
             }
@@ -346,19 +360,26 @@ struct StatusBarView: View {
     var body: some View {
         HStack(spacing: 12) {
             HStack(spacing: 7) {
-                StatusDot(color: engine.frame.isSettling ? HUD.accent : HUD.lime, size: 4.5)
-                Text(engine.frame.isSettling ? "SIMULATING" : "SIGNAL STABLE")
+                StatusDot(color: model.showWordCloud ? HUD.accent : (engine.frame.isSettling ? HUD.accent : HUD.lime), size: 4.5)
+                Text(model.showWordCloud ? "CLOUD LENS" : (engine.frame.isSettling ? "SIMULATING" : "SIGNAL STABLE"))
                     .font(HUDFont.micro(7.5))
                     .tracking(1.2)
-                    .foregroundStyle(engine.frame.isSettling ? HUD.accent.opacity(0.8) : HUD.muted)
+                    .foregroundStyle(model.showWordCloud ? HUD.accent.opacity(0.8) : (engine.frame.isSettling ? HUD.accent.opacity(0.8) : HUD.muted))
             }
 
             Rectangle().fill(HUD.hairline).frame(width: 1, height: 10)
 
-            Text("\(Format.count(model.graph.nodes.count, "NODE", "NODES")) · \(Format.count(model.graph.edges.count, "LINK", "LINKS")) · \(Format.count(model.graph.stats.groupCount, "HUB", "HUBS"))")
-                .font(HUDFont.micro(7.5))
-                .tracking(0.7)
-                .foregroundStyle(HUD.muted)
+            if model.showWordCloud {
+                Text("\(Format.count(model.graph.tagNodes.count, "WORD", "WORDS")) · \(Format.count(model.graph.stats.threadCount, "THREAD", "THREADS")) · \(Format.count(model.graph.stats.groupCount, "HUB", "HUBS"))")
+                    .font(HUDFont.micro(7.5))
+                    .tracking(0.7)
+                    .foregroundStyle(HUD.muted)
+            } else {
+                Text("\(Format.count(model.graph.nodes.count, "NODE", "NODES")) · \(Format.count(model.graph.edges.count, "LINK", "LINKS")) · \(Format.count(model.graph.stats.groupCount, "HUB", "HUBS"))")
+                    .font(HUDFont.micro(7.5))
+                    .tracking(0.7)
+                    .foregroundStyle(HUD.muted)
+            }
 
             if let summary = model.lastImportSummary {
                 Text("· \(summary)")
@@ -376,7 +397,7 @@ struct StatusBarView: View {
 
             Spacer()
 
-            Text("⌘F SEARCH   ⌘I IMPORT   ⌘0 FIT   ESC CLOSE")
+            Text("⌘F SEARCH   ⌘I IMPORT   ⌘0 FIT   ⌘4 CLOUD   ESC CLOSE")
                 .font(HUDFont.micro(7))
                 .tracking(0.6)
                 .foregroundStyle(HUD.dim)

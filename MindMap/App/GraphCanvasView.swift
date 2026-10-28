@@ -178,6 +178,30 @@ struct GraphCanvasView: View {
         // Camera controls, top-right
         VStack(spacing: 7) {
             Button {
+                model.showWordCloud = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "cloud")
+                        .font(.system(size: 8.5, weight: .semibold))
+                    Text("CLOUD")
+                        .font(HUDFont.micro(7.5))
+                        .tracking(0.4)
+                }
+                .foregroundStyle(HUD.textSoft)
+                .frame(width: 56, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(Color.white.opacity(0.02))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .strokeBorder(HUD.hairline, lineWidth: 0.8)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+            .help("Switch to word cloud  ⌘4")
+
+            Button {
                 model.toggle3D()
             } label: {
                 HStack(spacing: 3) {

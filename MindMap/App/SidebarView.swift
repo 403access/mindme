@@ -375,6 +375,9 @@ struct SidebarView: View {
                 signalToggle("MOTION", icon: "waveform.path", isOn: model.motionEnabled) {
                     model.motionEnabled.toggle()
                 }
+                signalToggle("CLOUD", icon: "cloud", isOn: model.showWordCloud) {
+                    model.toggleWordCloud()
+                }
             }
         }
     }

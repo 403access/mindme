@@ -11,10 +11,11 @@ assistants. Import exports from **ChatGPT**, **Google Gemini**, and **Claude**, 
 local **OpenCode** session library, or bring your own JSON — then explore everything as a
 living constellation of sources, topics, and shared language.
 
-The map is **not a word cloud**. It is a node-link force-directed graph: conversations keep
-their identity, provider hubs group them, and shared keywords appear as small diamond tag
-nodes that bridge otherwise separate clusters. Read [Visualization](./visualization.md) for
-the full design.
+The map is **not a word cloud** by default. It is a node-link force-directed graph: conversations
+keep their identity, provider hubs group them, and shared keywords appear as small diamond tag
+nodes that bridge otherwise separate clusters. **⌘4** flips the same filtered data into an
+opt-in word cloud when you want to read the shared vocabulary instead of the topology. Read
+[Visualization](./visualization.md) for the full design.
 
 ![MINDME map](/img/map.jpg)
 
@@ -33,6 +34,8 @@ the full design.
   pulses along active paths, a minimap, and an animated camera.
 - **2D or 3D** — flip the map into a spatial perspective with a z-axis, depth-sorted nodes, a
   perspective floor, and an orbit camera.
+- **Word cloud** — switch the same filtered library into a semantic cloud where keywords are
+  sized by how many conversations share them. Click a word to isolate its threads.
 - **Stays on your Mac** — no network calls, no accounts, no telemetry. Data is normalized
   into `~/Library/Application Support/MindMap/library.json`.
 

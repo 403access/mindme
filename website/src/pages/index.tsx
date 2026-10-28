@@ -21,6 +21,10 @@ const features = [
     title: 'Flat or spatial',
     body: 'Read the map as a force-directed constellation, then flip into an orbit-camera 3D view that preserves every node and edge.',
   },
+  {
+    title: 'Vocabulary when you want it',
+    body: 'Press ⌘4 to turn the same filtered tags into a word cloud sized by how many conversations share them. Click a word to isolate its threads.',
+  },
 ];
 
 function HomepageHeader() {
@@ -76,10 +80,10 @@ export default function Home(): ReactNode {
           <div>
             <h2>How the visualization works</h2>
             <p>
-              Keywords never drive type size here. They become topology — diamonds and
-              hubs — while conversations keep their identity. The visualization guide walks
-              through the graph builder, TF-IDF extraction, both layouts, the cameras, and
-              every renderer pass.
+              By default keywords never drive type size: they become topology — diamonds and
+              hubs — while conversations keep their identity. Press ⌘4 for the alternate word
+              cloud lens. The visualization guide walks through the graph builder, TF-IDF
+              extraction, both layouts, the cameras, the cloud packer, and every renderer pass.
             </p>
           </div>
           <Link className={clsx('button button--primary')} to="/docs/visualization">

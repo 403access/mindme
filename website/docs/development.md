@@ -57,6 +57,7 @@ MindMap/
 │   ├── GraphEngine.swift    simulation clock, 2D/3D cameras, hit testing, render throttling
 │   ├── Perspective.swift    perspective camera, projection, 3D fit
 │   ├── MapRenderer.swift    Canvas renderer (2D/3D nodes, edges, labels, depth)
+│   ├── WordCloudView.swift  word-cloud layout, renderer, hover cards, empty state
 │   ├── GraphCanvasView.swift gestures, minimap, orbit gizmo, hover cards, empty state
 │   ├── SidebarView.swift    filter matrix
 │   ├── DetailPanelView.swift thread/cluster inspector
@@ -82,6 +83,8 @@ linked unchanged from a future iOS target. The rendering layer is SwiftUI `Canva
   providers.
 - **Bright path** — the selected thread, its cluster, and its tags; everything else dims to
   keep context.
+- **Word cloud (⌘4)** — the same filtered tag nodes as sized words. Larger type means more
+  conversations share that keyword; click a word to isolate its threads.
 
 See [Visualization](./visualization.md) for the implementation details.
 
@@ -91,15 +94,18 @@ See [Visualization](./visualization.md) for the implementation details.
 | --- | --- |
 | Drag / pinch (2D) | Pan / zoom (trackpad magnify or the +/− controls) |
 | **⌘3** or the **2D/3D** map control | Toggle the spatial perspective |
+| **⌘4** or the **CLOUD** control | Switch between the constellation and the word cloud |
 | Drag (3D) | Orbit the camera around the root |
 | **Shift**-drag (3D) | Pan the camera target across the scene |
 | Pinch / +− (3D) | Move the camera closer or farther |
 | Click a node | Highlight its path and open the inspector |
 | Click a thread in the sidebar | Jump to its constellation and open the transcript |
 | Click a tag chip in the inspector | Isolate every thread behind that tag |
+| Click a word in the cloud | Isolate its threads and open the tag inspector |
 | **⌘0** | Fit the whole map |
 | **⌘F** | Focus the search field |
 | **⌘I** | Import exports |
+| **⌘4** | Toggle the word cloud |
 | **⌘R** | Reload the local library |
 | **Esc** | Deselect / close the inspector |
 
@@ -112,7 +118,8 @@ and projecting it is cheap, and the same throttle applies.
 All node sizes and labels are drawn in screen space so zoom changes spacing but never
 legibility, and the canvas only publishes a frame when something actually changed. Toggle
 **MOTION** off in the sidebar (or *Map → Ambient Motion*) for an essentially static,
-near-zero-idle-CPU map.
+near-zero-idle-CPU map. The word cloud packs its words once per filter/size change and only
+runs a gentle 15 fps drift while it is visible.
 
 ## Privacy
 

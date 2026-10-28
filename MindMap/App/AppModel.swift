@@ -82,6 +82,13 @@ final class AppModel: ObservableObject {
     // View toggles
     @Published var showLabels: Bool = true
     @Published var motionEnabled: Bool = true
+    @Published var showWordCloud: Bool = false {
+        didSet {
+            // The cloud is drawn from shared tag nodes, so tags must be part of
+            // the graph while that lens is active.
+            if showWordCloud, !showTags { showTags = true }
+        }
+    }
     @Published var is3D: Bool = false {
         didSet { engine.setSpatialMode(is3D) }
     }
@@ -271,6 +278,10 @@ final class AppModel: ObservableObject {
 
     func toggle3D() {
         is3D.toggle()
+    }
+
+    func toggleWordCloud() {
+        showWordCloud.toggle()
     }
 
     // MARK: - Import

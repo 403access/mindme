@@ -1,6 +1,6 @@
 ---
 title: Visualization
-description: Graph model, keyword pipeline, 2D and 3D layouts, cameras, renderer, and extension points.
+description: Graph model, keyword pipeline, 2D and 3D layouts, word cloud, cameras, renderer, and extension points.
 ---
 
 # MINDME Visualization
@@ -9,13 +9,15 @@ How a library of imported conversations becomes the map you see. This is the
 deep-dive companion to the [project README](https://github.com/403access/mindme#readme): the
 graph model, the keyword pipeline, both layouts, the camera/projection stack, and the renderer.
 
-**It is not a word cloud.** Words never drive type size. Keywords become
-topology — small diamond *tag nodes* and, in topic mode, group hubs — while the
-main visual object is a node-link force-directed graph.
+**The default view is not a word cloud.** Words do not drive type size in the
+constellation. Keywords become topology — small diamond *tag nodes* and, in
+topic mode, group hubs — while the main visual object is a node-link
+force-directed graph. An opt-in **word cloud** (⌘4) exposes the same filtered
+tags as a second lens when you want to read the shared vocabulary directly.
 
 ```
 KeywordExtractor ──► tag nodes, topic hubs, inspector chips
-                  └► (no sized text, no word-frequency layout)
+                  └► WordCloudLayout (⌘4, size ∝ shared conversations)
 ```
 
 ---
@@ -44,6 +46,14 @@ MapProjection (2D → 3D blend)
 MapRenderer.draw(into: GraphicsContext)     App/MapRenderer.swift
    ▼
 SwiftUI Canvas (GraphCanvasView)
+
+MindMapGraph.tagNodes + weights
+   ▼
+WordCloudLayout (cached per filter/size)    App/WordCloudView.swift
+   ▼
+WordCloudRenderer.draw(into: GraphicsContext)   (⌘4)
+   ▼
+SwiftUI Canvas (WordCloudView)
 ```
 
 The core package is UI-independent; everything above `GraphEngine` is
@@ -333,7 +343,63 @@ removed, preserving spatial context.
 
 ---
 
-## 9. Interaction
+## 9. Word cloud mode
+
+`WordCloudView.swift` is an alternate lens, not a camera mode. It replaces the
+canvas while the toggle is active; the 2D/3D engine stops, and switching back
+restores the previous constellation and camera state.
+
+### Data
+
+The cloud reads `MindMapGraph.tagNodes` — the same nodes the map draws as
+diamonds, already filtered by source, time window, and search. Each tag’s
+`weight` is the number of conversations sharing that keyword. Since the cloud
+needs tags, turning it on enables `showTags` automatically; turning tags off
+while the cloud is open shows an explanatory empty state.
+
+### Layout
+
+`WordCloudLayout.make(graph:size:)` is deterministic and runs once per filter or
+size change, never per frame.
+
+1. Sort tags by weight (ties by label).
+2. Map weight to type size with a blend of frequency and rank:
+
+   ```
+   blend = 0.68 × weightNorm + 0.32 × rankNorm
+   size  = 10.5 + (maxFont − 10.5) × blend^0.82
+   maxFont = clamp(10.5% of the shorter view side, 34 … 76)
+   ```
+
+   The rank term keeps a batch of equally-shared words from collapsing into one
+   uniform size.
+3. Place words on a slow elliptical spiral: `x = cos θ × t × width/2`,
+   `y = sin θ × t × height/2`, with a per-word phase from `StableID.hash`.
+   A word is accepted when its padded rect is inside the view and does not
+   intersect an already-placed word.
+4. If placement fails, retry at 0.88, 0.76, 0.64, and 0.54 of the font size.
+   Words longer than the canvas are first shrunk to fit. Anything below 8.5 pt is
+   dropped.
+
+Colour encodes provenance: a tag shared by multiple providers is cyan (the bridge
+accent), a single-provider tag uses that provider’s colour, and a tag with no
+resolved neighbours falls back to the topic palette.
+
+### Rendering and interaction
+
+`WordCloudRenderer` draws three faint orbit rings, a tick ring, and a radial
+accent field, then the words centred on their layout rects. Selection and hover
+add a coloured glow and underline; every other word dims to 18%. An optional
+15 fps `TimelineView` adds a ±1.4 pt vertical drift when **MOTION** is on.
+
+Hit testing is rect containment on the cached layout, preferring the smallest
+rect under the pointer. Clicking a word selects its tag node, which opens the
+same tag inspector and isolates exactly the same thread set as clicking the
+diamond on the map. Clicking empty space deselects.
+
+---
+
+## 10. Interaction
 
 Implemented in `GraphCanvasView.swift` (gestures/overlays) and `GraphEngine`
 (navigation/hit testing).
@@ -348,6 +414,8 @@ Implemented in `GraphCanvasView.swift` (gestures/overlays) and `GraphEngine`
 | Hover | hit test → highlight path + hover card + pointing-hand cursor |
 | ⌘0 / fit control | frame all nodes |
 | ⌘3 / 2D–3D control | crossfade modes |
+| ⌘4 / CLOUD control | switch to the word cloud and back |
+| Click a word (cloud) | select its tag node and isolate its threads |
 | ⌘F | focus search |
 | Esc | deselect / close inspector |
 
@@ -357,7 +425,7 @@ Ties prefer the nearer depth. Drags of 4 pt or less count as clicks.
 
 ---
 
-## 10. Performance model
+## 11. Performance model
 
 The engine ticks at 60 Hz but publishes frames adaptively:
 
@@ -367,6 +435,9 @@ The engine ticks at 60 Hz but publishes frames adaptively:
 | ambient motion on, app active | 10 fps |
 | ambient motion on, app inactive | 2 fps |
 | ambient motion off and nothing moving | event-driven only |
+
+The word cloud is outside the engine loop: its layout is cached, and only the
+optional drift redraws at 15 fps (static when **MOTION** is off).
 
 Other guards:
 
@@ -382,7 +453,7 @@ essentially static map with near-zero idle CPU.
 
 ---
 
-## 11. Testing and determinism
+## 12. Testing and determinism
 
 `make test` runs 22 core tests (`Core/Tests/MindMapCoreTests/`). Relevant to the
 visualization:
@@ -400,7 +471,7 @@ hashes.
 
 ---
 
-## 12. Extending the visualization
+## 13. Extending the visualization
 
 ### Add a new grouping lens
 
@@ -417,25 +488,15 @@ Touch points: `NodeKind`, `GraphBuilder`, `HUD.color(for:)`,
 `MapRenderer.drawNodeScaled` + a draw function, `GraphEngine.hitRadius`, and
 `GraphLayout`/`GraphLayout3D` radii. Labels are generic and need no change.
 
-### Adding a word-cloud mode
+### Extend the word cloud
 
-The data is already available: `MindMapGraph.tagNodes` carries a `weight` equal
-to the number of conversations sharing each keyword. A cloud mode would be a
-third `modeBlend` target alongside 2D/3D:
-
-1. Lay out tag labels with a spiral or force placement keyed on `weight`.
-2. Scale font size from `weight` (the one place word frequency would drive
-   type, by design).
-3. Render in a new pass in `MapRenderer`, skipping edges/nodes or dimming them.
-4. Gate it behind a `MapMode` enum in `GraphEngine` so 2D, 3D, and CLOUD share
-   the same `RenderFrame` plumbing.
-
-This is intentionally not implemented: the map’s job is to preserve
-conversation identity and provenance, which a word cloud discards.
+`WordCloudLayout.make` owns placement and sizing; `WordCloudRenderer` owns the
+passes. Add colour or typography rules in those two types. New data sources
+should continue to arrive as `tagNodes`, so the map and cloud stay in sync.
 
 ---
 
-## 13. Known limitations
+## 14. Known limitations
 
 - Rendering caps at 420 conversations; use source/time/search filters for larger
   archives.
@@ -448,3 +509,6 @@ conversation identity and provenance, which a word cloud discards.
   collision-free.
 - Labels are truncated (22 chars for tags, 30–38 for threads) and dropped when
   they collide; zoom in to recover them.
+- The word cloud only shows where shared keywords exist, and only tags that pass
+  the map’s tag budget (§4) — not every word in the archive. Use the topic lens
+  or search to narrow a large vocabulary.

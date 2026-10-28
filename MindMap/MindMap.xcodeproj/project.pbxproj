@@ -16,6 +16,7 @@
 		6DDBDA38B940CD7080F955A6 /* MindMapApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */; };
 		8E3A30164D104DF1F67BC893 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9076702BDBAB5B610FDB8 /* RootView.swift */; };
 		919EB876A74CC18F10A3CC81 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */; };
+		AB5936ED1DB00FEE84D56793 /* WordCloudView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BFE656AFC79B98062506A2 /* WordCloudView.swift */; };
 		BA82FAA875CA7528F02AE7EC /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F632140FF2996A97BD75178 /* HelpView.swift */; };
 		CBE39337AA0424CBBB6C9E8A /* DetailPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E96CC769620FBAAA74B912 /* DetailPanelView.swift */; };
 		F515331EAD77317AECDD0107 /* GraphEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */; };
@@ -34,6 +35,7 @@
 		7F26818BD2B4233A0B707255 /* MapRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapRenderer.swift; sourceTree = "<group>"; };
 		AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		B03CCB62197FEC868B6386B5 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		D8BFE656AFC79B98062506A2 /* WordCloudView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCloudView.swift; sourceTree = "<group>"; };
 		DE0E2B35061C9196EB34CF8D /* Perspective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Perspective.swift; sourceTree = "<group>"; };
 		E295845268FF88F9231FBCBE /* MindMap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MindMap.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7B6930ABBF77E51835B8C8D /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = Core; sourceTree = SOURCE_ROOT; };
@@ -66,6 +68,7 @@
 				59D9076702BDBAB5B610FDB8 /* RootView.swift */,
 				AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */,
 				B03CCB62197FEC868B6386B5 /* Theme.swift */,
+				D8BFE656AFC79B98062506A2 /* WordCloudView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -181,6 +184,7 @@
 				8E3A30164D104DF1F67BC893 /* RootView.swift in Sources */,
 				919EB876A74CC18F10A3CC81 /* SidebarView.swift in Sources */,
 				458911454E0459E3FB1E8D82 /* Theme.swift in Sources */,
+				AB5936ED1DB00FEE84D56793 /* WordCloudView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
