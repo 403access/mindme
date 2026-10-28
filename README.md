@@ -124,6 +124,8 @@ Interaction:
 
 ## Architecture
 
+> **Deep dive:** [Docs/visualization.md](MindMap/Docs/visualization.md) documents the graph model, keyword pipeline, both layouts, cameras, renderer, and extension points. The visualization is a node-link constellation — keywords become diamond tag nodes and topic hubs, never sized text.
+
 ```
 MindMap/
 ├── App/                     SwiftUI app (macOS)
