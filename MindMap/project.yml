@@ -33,3 +33,39 @@ targets:
         CODE_SIGN_STYLE: Manual
         SWIFT_EMIT_LOC_STRINGS: NO
         COMBINE_HIDPI_IMAGES: YES
+  MindMapTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - MindMapApp.swift
+      - path: Tests/App
+    dependencies:
+      - package: MindMapCore
+        product: MindMapCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.oliver.mindme.tests
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+schemes:
+  MindMap:
+    build:
+      targets:
+        MindMap: all
+        MindMapTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - MindMapTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

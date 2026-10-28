@@ -16,7 +16,8 @@ let package = Package(
         .testTarget(
             name: "MindMapCoreTests",
             dependencies: ["MindMapCore"],
-            swiftSettings: [.swiftLanguageMode(.v5)]
+            swiftSettings: [.swiftLanguageMode(.v5)],
+            linkerSettings: [.linkedLibrary("sqlite3")]
         )
     ]
 )

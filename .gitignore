@@ -1,6 +1,7 @@
 .DS_Store
 MindMap/.build/
 MindMap/.build-release/
+MindMap/.build-tests/
 MindMap/dist/
 MindMap/MindMap.xcodeproj/xcuserdata/
 MindMap/MindMap.xcodeproj/project.xcworkspace/xcuserdata/

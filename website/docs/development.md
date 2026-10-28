@@ -29,10 +29,12 @@ make release      # -> MindMap/dist/MINDME.app
 make install      # -> ~/Applications/MINDME.app
 ```
 
-Run the core test suite (importers, keyword extraction, clustering, graph filters, layout):
+Run the test suites (importers, keyword extraction, clustering, graph filters, layout, storage, cameras, word clouds):
 
 ```bash
-make test
+make test          # core suite
+make test-app      # app logic suite (cameras, graph engine, app model, cloud layouts)
+make test-all      # both
 ```
 
 ## Documentation site

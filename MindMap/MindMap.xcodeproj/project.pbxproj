@@ -7,43 +7,78 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		113175666272A4E5267615BD /* HybridWords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FABEE5DA1F5979893067D08 /* HybridWords.swift */; };
+		12A5BE9ADB9D57C888246331 /* GraphEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 836AF2AC1FFFC4F03ABDE5D9 /* GraphEngineTests.swift */; };
+		1C34A669F2D25024041D9C54 /* GraphEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */; };
 		22AC8C80F774C52D26943709 /* GraphCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */; };
+		243E5A7776ADE48F8855A40B /* GraphCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */; };
 		36DF99A83B51CBFB9F5BBF5B /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */; };
 		3A43E3035137513A9919BE61 /* MindMapCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3B8EA961BD5333122169B4FE /* MindMapCore */; };
+		408C252491AB83B790FAA3EB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4C3F2F5A60B6FC37451E5BB0 /* Assets.xcassets */; };
+		44E4C1D14AE75B381A07E961 /* CameraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44027CC7971335031837ECF2 /* CameraTests.swift */; };
 		458911454E0459E3FB1E8D82 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03CCB62197FEC868B6386B5 /* Theme.swift */; };
 		4611D503EE598677C8D12A3A /* HybridWords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FABEE5DA1F5979893067D08 /* HybridWords.swift */; };
 		4642136CC7D1BE404F99F1E2 /* MapRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F26818BD2B4233A0B707255 /* MapRenderer.swift */; };
 		4E2AA918E48D641065430D52 /* Perspective.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0E2B35061C9196EB34CF8D /* Perspective.swift */; };
+		4EE12217F3FD5F3C3057FC24 /* DetailPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E96CC769620FBAAA74B912 /* DetailPanelView.swift */; };
+		5693EA3D03516796AEAA5054 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9076702BDBAB5B610FDB8 /* RootView.swift */; };
+		5A69E0D6BA0EF491C5D93DB0 /* WordCloudLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 021A48734020E1D83A59E61F /* WordCloudLayoutTests.swift */; };
 		6DDBDA38B940CD7080F955A6 /* MindMapApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */; };
+		744BF92C681AB275AF8A071A /* MindMapCore in Frameworks */ = {isa = PBXBuildFile; productRef = F853DDAE7184B443FF6015C1 /* MindMapCore */; };
+		79ED86DD6731E59DE7B209F5 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */; };
+		886567E54612421BD7258FE4 /* MapRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F26818BD2B4233A0B707255 /* MapRenderer.swift */; };
+		8D344636AD2DFDCA3AB4E5D1 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */; };
 		8E3A30164D104DF1F67BC893 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9076702BDBAB5B610FDB8 /* RootView.swift */; };
 		919EB876A74CC18F10A3CC81 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */; };
+		97379A9A4826DB298D619BF2 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63601EA678420B921B04D8D6 /* AppModelTests.swift */; };
+		A74992C3D350894C979074AB /* AppMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1064A3B0BDD6D44D89B1D479 /* AppMetadataTests.swift */; };
 		AB5936ED1DB00FEE84D56793 /* WordCloudView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BFE656AFC79B98062506A2 /* WordCloudView.swift */; };
 		BA82FAA875CA7528F02AE7EC /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F632140FF2996A97BD75178 /* HelpView.swift */; };
+		BC9571339AD9B6703FB5BFCA /* FormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 836D9418DEFF3C6747E352A4 /* FormatTests.swift */; };
+		CA27125EDEAC2F6BC8803D39 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F632140FF2996A97BD75178 /* HelpView.swift */; };
 		CBE39337AA0424CBBB6C9E8A /* DetailPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E96CC769620FBAAA74B912 /* DetailPanelView.swift */; };
+		E886AD1937F862CF180B31AA /* WordCloudView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BFE656AFC79B98062506A2 /* WordCloudView.swift */; };
+		EAD400C6B801519BE8C2FC38 /* Perspective.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0E2B35061C9196EB34CF8D /* Perspective.swift */; };
+		F4AF466647F166177CD8EC2A /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03CCB62197FEC868B6386B5 /* Theme.swift */; };
 		F515331EAD77317AECDD0107 /* GraphEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */; };
 		FC05F7D57FBAA8EE5CEC6E3E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4C3F2F5A60B6FC37451E5BB0 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		021A48734020E1D83A59E61F /* WordCloudLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCloudLayoutTests.swift; sourceTree = "<group>"; };
+		1064A3B0BDD6D44D89B1D479 /* AppMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMetadataTests.swift; sourceTree = "<group>"; };
 		23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphCanvasView.swift; sourceTree = "<group>"; };
 		38E96CC769620FBAAA74B912 /* DetailPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailPanelView.swift; sourceTree = "<group>"; };
 		3F632140FF2996A97BD75178 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		44027CC7971335031837ECF2 /* CameraTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraTests.swift; sourceTree = "<group>"; };
 		4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		4C3F2F5A60B6FC37451E5BB0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphEngine.swift; sourceTree = "<group>"; };
 		59D9076702BDBAB5B610FDB8 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		63601EA678420B921B04D8D6 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindMapApp.swift; sourceTree = "<group>"; };
 		7F26818BD2B4233A0B707255 /* MapRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapRenderer.swift; sourceTree = "<group>"; };
 		7FABEE5DA1F5979893067D08 /* HybridWords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HybridWords.swift; sourceTree = "<group>"; };
+		836AF2AC1FFFC4F03ABDE5D9 /* GraphEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphEngineTests.swift; sourceTree = "<group>"; };
+		836D9418DEFF3C6747E352A4 /* FormatTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatTests.swift; sourceTree = "<group>"; };
 		AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		B03CCB62197FEC868B6386B5 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		D8BFE656AFC79B98062506A2 /* WordCloudView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCloudView.swift; sourceTree = "<group>"; };
 		DE0E2B35061C9196EB34CF8D /* Perspective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Perspective.swift; sourceTree = "<group>"; };
 		E295845268FF88F9231FBCBE /* MindMap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MindMap.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F04AC1007DF28569FB7E51C8 /* MindMapTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MindMapTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F7B6930ABBF77E51835B8C8D /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = Core; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		6E52770B1882FF9798BD0614 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				744BF92C681AB275AF8A071A /* MindMapCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE05EAFB954B2751920309F6 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -80,8 +115,30 @@
 			isa = PBXGroup;
 			children = (
 				E295845268FF88F9231FBCBE /* MindMap.app */,
+				F04AC1007DF28569FB7E51C8 /* MindMapTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		77EFF95D346EAC4403304E1F /* App */ = {
+			isa = PBXGroup;
+			children = (
+				1064A3B0BDD6D44D89B1D479 /* AppMetadataTests.swift */,
+				63601EA678420B921B04D8D6 /* AppModelTests.swift */,
+				44027CC7971335031837ECF2 /* CameraTests.swift */,
+				836D9418DEFF3C6747E352A4 /* FormatTests.swift */,
+				836AF2AC1FFFC4F03ABDE5D9 /* GraphEngineTests.swift */,
+				021A48734020E1D83A59E61F /* WordCloudLayoutTests.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		C0A0D45D3C4E20EA6031FEAF /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				77EFF95D346EAC4403304E1F /* App */,
+			);
+			path = Tests;
 			sourceTree = "<group>";
 		};
 		D3C598A5E8F123C33947FC16 = {
@@ -89,6 +146,7 @@
 			children = (
 				67C504526B1B7A2BA3D3BC5D /* App */,
 				DD1BA1D3F96F860C14B3F641 /* Packages */,
+				C0A0D45D3C4E20EA6031FEAF /* Tests */,
 				6B45107527B4AA011744E2ED /* Products */,
 			);
 			sourceTree = "<group>";
@@ -124,6 +182,26 @@
 			productReference = E295845268FF88F9231FBCBE /* MindMap.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F611E37F13137E8AC315B35A /* MindMapTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 80787C02B07B9756D8C40BB4 /* Build configuration list for PBXNativeTarget "MindMapTests" */;
+			buildPhases = (
+				FA1D487E53A0D271DBFB8FEF /* Sources */,
+				6BE6394E7828F04705C68240 /* Resources */,
+				6E52770B1882FF9798BD0614 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MindMapTests;
+			packageProductDependencies = (
+				F853DDAE7184B443FF6015C1 /* MindMapCore */,
+			);
+			productName = MindMapTests;
+			productReference = F04AC1007DF28569FB7E51C8 /* MindMapTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -134,6 +212,9 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					F4F65F3C035C1304FAE9860A = {
+						ProvisioningStyle = Manual;
+					};
+					F611E37F13137E8AC315B35A = {
 						ProvisioningStyle = Manual;
 					};
 				};
@@ -156,6 +237,7 @@
 			projectRoot = "";
 			targets = (
 				F4F65F3C035C1304FAE9860A /* MindMap */,
+				F611E37F13137E8AC315B35A /* MindMapTests */,
 			);
 		};
 /* End PBXProject section */
@@ -166,6 +248,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				FC05F7D57FBAA8EE5CEC6E3E /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6BE6394E7828F04705C68240 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				408C252491AB83B790FAA3EB /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -189,6 +279,31 @@
 				919EB876A74CC18F10A3CC81 /* SidebarView.swift in Sources */,
 				458911454E0459E3FB1E8D82 /* Theme.swift in Sources */,
 				AB5936ED1DB00FEE84D56793 /* WordCloudView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FA1D487E53A0D271DBFB8FEF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A74992C3D350894C979074AB /* AppMetadataTests.swift in Sources */,
+				79ED86DD6731E59DE7B209F5 /* AppModel.swift in Sources */,
+				97379A9A4826DB298D619BF2 /* AppModelTests.swift in Sources */,
+				44E4C1D14AE75B381A07E961 /* CameraTests.swift in Sources */,
+				4EE12217F3FD5F3C3057FC24 /* DetailPanelView.swift in Sources */,
+				BC9571339AD9B6703FB5BFCA /* FormatTests.swift in Sources */,
+				243E5A7776ADE48F8855A40B /* GraphCanvasView.swift in Sources */,
+				1C34A669F2D25024041D9C54 /* GraphEngine.swift in Sources */,
+				12A5BE9ADB9D57C888246331 /* GraphEngineTests.swift in Sources */,
+				CA27125EDEAC2F6BC8803D39 /* HelpView.swift in Sources */,
+				113175666272A4E5267615BD /* HybridWords.swift in Sources */,
+				886567E54612421BD7258FE4 /* MapRenderer.swift in Sources */,
+				EAD400C6B801519BE8C2FC38 /* Perspective.swift in Sources */,
+				5693EA3D03516796AEAA5054 /* RootView.swift in Sources */,
+				8D344636AD2DFDCA3AB4E5D1 /* SidebarView.swift in Sources */,
+				F4AF466647F166177CD8EC2A /* Theme.swift in Sources */,
+				5A69E0D6BA0EF491C5D93DB0 /* WordCloudLayoutTests.swift in Sources */,
+				E886AD1937F862CF180B31AA /* WordCloudView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -220,6 +335,25 @@
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
+		};
+		570592497B6A5E6B4856E5B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.oliver.mindme.tests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
 		};
 		9ADBF3639764C93418DFF06B /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -310,6 +444,25 @@
 			};
 			name = Debug;
 		};
+		EB2B26E73C4C85A355326BF2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.oliver.mindme.tests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
 		EC528CC7A72143A5FA61137E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -369,6 +522,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		80787C02B07B9756D8C40BB4 /* Build configuration list for PBXNativeTarget "MindMapTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EB2B26E73C4C85A355326BF2 /* Debug */,
+				570592497B6A5E6B4856E5B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		999BC587DAB65DD0FE1C722F /* Build configuration list for PBXProject "MindMap" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -398,6 +560,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		3B8EA961BD5333122169B4FE /* MindMapCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MindMapCore;
+		};
+		F853DDAE7184B443FF6015C1 /* MindMapCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MindMapCore;
 		};

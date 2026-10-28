@@ -596,8 +596,8 @@ essentially static map with near-zero idle CPU.
 
 ## 12. Testing and determinism
 
-`make test` runs the core suite (`Core/Tests/MindMapCoreTests/`). Relevant to the
-visualization:
+`make test` runs the core suite (`Core/Tests/MindMapCoreTests/`); `make test-app`
+runs the hostless app-logic suite (`Tests/App/`). Relevant to the visualization:
 
 - `testAnchorsAndSimulationRemainFinite` — no NaN/∞ after relaxation
 - `testSpatialLayoutIsFiniteAndDeterministic` — 3D anchors are finite and stable
@@ -609,6 +609,9 @@ visualization:
 - `testRegionGroupingBuildsHierarchy`, `testDemoArchiveProducesRegionHierarchy`
 - `testPipelineIsDeterministic`, `testCachedProfilesAreReused`
 - `testSpendFollowsSegmentsAndRegions`, `testSessionCostRescalesTrimmedSegmentCosts`
+- `testCameraBasisIsOrthonormal`, `testProjectionOfTargetIsCentered` (app)
+- `testScreenAndWorldTransformsAreInverse`, `testSpatialModeOrbitZoomPanAndReset` (app)
+- `testWordsFitTheCanvasAndDoNotOverlap`, `testWordsAreAnchoredInsideTheCanvasAndDoNotOverlap` (app)
 
 Determinism is a design constraint, not an accident: `StableID.hash` replaces
 `hashValue` (which is seeded per process) everywhere visual output depends on

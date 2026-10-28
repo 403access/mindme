@@ -172,12 +172,17 @@ final class AppModel: ObservableObject {
     @Published var showResetConfirmation = false
 
     let engine = GraphEngine()
-    private let store = ThreadStore()
-    private let topicStore = TopicStore()
+    private let store: ThreadStore
+    private let topicStore: TopicStore
     private var searchTask: Task<Void, Never>?
     private var toastTask: Task<Void, Never>?
 
-    init() {
+    init(
+        store: ThreadStore = ThreadStore(),
+        topicStore: TopicStore = TopicStore()
+    ) {
+        self.store = store
+        self.topicStore = topicStore
         bootstrap()
     }
 
