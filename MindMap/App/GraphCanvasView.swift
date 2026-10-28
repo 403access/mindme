@@ -39,6 +39,7 @@ struct GraphCanvasView: View {
                         hoveredNodeID: model.hoveredNodeID,
                         showLabels: model.showLabels,
                         showNodeNames: model.showNodeNames,
+                        showSpend: model.showSpend,
                         motion: model.motionEnabled,
                         hybridWords: hybrid,
                         focusPath: focusPath
@@ -134,6 +135,17 @@ struct GraphCanvasView: View {
 
     // MARK: - Overlays
 
+    private var topologyTitle: String {
+        if model.viewMode == .hybrid { return "HYBRID CLOUD" }
+        if model.is3D { return "SPATIAL TOPOLOGY" }
+        switch model.grouping {
+        case .provider: return "SOURCE TOPOLOGY"
+        case .topic: return "TOPIC CONSTELLATIONS"
+        case .region: return "REGION CONSTELLATIONS"
+        case .era: return "TEMPORAL SHELLS"
+        }
+    }
+
     @ViewBuilder
     private func mapOverlays(size: CGSize) -> some View {
         // Top-left telemetry strip
@@ -143,7 +155,7 @@ struct GraphCanvasView: View {
                     .fill(HUD.lime)
                     .frame(width: 4.5, height: 4.5)
                     .shadow(color: HUD.lime.opacity(0.9), radius: 4)
-                Text(model.viewMode == .hybrid ? "HYBRID CLOUD" : (model.is3D ? "SPATIAL TOPOLOGY" : (model.grouping == .provider ? "SOURCE TOPOLOGY" : (model.grouping == .topic ? "TOPIC CONSTELLATIONS" : "TEMPORAL SHELLS"))))
+                Text(topologyTitle)
                     .font(HUDFont.micro(8))
                     .tracking(1.4)
                     .foregroundStyle(HUD.textSoft)
@@ -171,6 +183,40 @@ struct GraphCanvasView: View {
                     Capsule()
                         .fill(HUD.amber.opacity(0.08))
                         .overlay(Capsule().strokeBorder(HUD.amber.opacity(0.3), lineWidth: 0.7))
+                )
+            }
+
+            if model.showSpend {
+                HStack(spacing: 6) {
+                    HStack(spacing: 2) {
+                        ForEach(0..<5, id: \.self) { index in
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(HUD.spendColor(Double(index) / 4))
+                                .frame(width: 3.5, height: 9)
+                        }
+                    }
+                    if model.graph.hasCostData {
+                        Text("SPEND \(Format.cost(model.graph.stats.totalCost))")
+                        if let top = model.graph.groupNodes
+                            .filter({ $0.cost > 0 })
+                            .max(by: { $0.cost < $1.cost }) {
+                            Text("· TOP \(top.label) \(Format.cost(top.cost))")
+                                .foregroundStyle(HUD.amber)
+                        }
+                    } else {
+                        Text("NO COST IN VIEW")
+                            .foregroundStyle(HUD.dim)
+                    }
+                }
+                .font(HUDFont.micro(7.5))
+                .tracking(0.7)
+                .foregroundStyle(HUD.textSoft)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 3)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.03))
+                        .overlay(Capsule().strokeBorder(HUD.hairline, lineWidth: 0.7))
                 )
             }
 
@@ -229,6 +275,30 @@ struct GraphCanvasView: View {
             }
             .buttonStyle(.plain)
             .help("Toggle 3D perspective  ⌘3")
+
+            Button {
+                model.toggleSpend()
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "dollarsign.circle")
+                        .font(.system(size: 8.5, weight: .semibold))
+                    Text("COST")
+                        .font(HUDFont.micro(7))
+                        .tracking(0.4)
+                }
+                .foregroundStyle(model.showSpend ? HUD.amber : HUD.textSoft)
+                .frame(width: 46, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(model.showSpend ? HUD.amber.opacity(0.12) : Color.white.opacity(0.02))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .strokeBorder(model.showSpend ? HUD.amber.opacity(0.45) : HUD.hairline, lineWidth: 0.8)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+            .help("Toggle spend heat")
 
             HUDIconButton(systemName: "plus", help: "Zoom in") {
                 zoom(by: 1.22, at: CGPoint(x: size.width / 2, y: size.height / 2))

@@ -131,6 +131,9 @@ final class AppModel: ObservableObject {
     /// Draw each hub's real name inside the node instead of the generic
     /// "TOPIC" monogram. On by default; labels remain independently toggleable.
     @Published var showNodeNames: Bool = true
+    /// Opt-in spend heat. Off by default; only meaningful for archives that
+    /// carry provider-reported cost (OpenCode).
+    @Published var showSpend: Bool = false
     @Published var motionEnabled: Bool = true
     @Published var viewMode: VisualizationMode = .map {
         didSet {
@@ -555,6 +558,24 @@ final class AppModel: ObservableObject {
 
     func topicLabel(for topicID: String) -> String {
         topicAnalysis.taxonomy.label(for: topicID)
+    }
+
+    // MARK: - Spend
+
+    var hasSpendData: Bool {
+        library.threads.contains(where: \.hasCostData)
+    }
+
+    func toggleSpend() {
+        if !showSpend, !hasSpendData {
+            showToast(
+                "No spend data in this library",
+                detail: "Import OpenCode sessions to see cost heat across regions.",
+                kind: .info
+            )
+            return
+        }
+        showSpend.toggle()
     }
 
     // MARK: - Derived

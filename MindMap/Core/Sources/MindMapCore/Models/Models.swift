@@ -87,12 +87,35 @@ public struct ChatMessage: Identifiable, Codable, Hashable, Sendable {
     public var role: MessageRole
     public var text: String
     public var timestamp: Date?
+    /// Provider-reported spend for this message, when the source exposes it
+    /// (currently OpenCode). `nil` means "unknown", not "free".
+    public var cost: Double?
+    public var inputTokens: Int?
+    public var outputTokens: Int?
+    public var cachedTokens: Int?
 
-    public init(id: String, role: MessageRole, text: String, timestamp: Date? = nil) {
+    public init(
+        id: String,
+        role: MessageRole,
+        text: String,
+        timestamp: Date? = nil,
+        cost: Double? = nil,
+        inputTokens: Int? = nil,
+        outputTokens: Int? = nil,
+        cachedTokens: Int? = nil
+    ) {
         self.id = id
         self.role = role
         self.text = text
         self.timestamp = timestamp
+        self.cost = cost
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.cachedTokens = cachedTokens
+    }
+
+    public var tokenCount: Int {
+        (inputTokens ?? 0) + (outputTokens ?? 0) + (cachedTokens ?? 0)
     }
 }
 
@@ -109,6 +132,13 @@ public struct ConversationThread: Identifiable, Codable, Hashable, Sendable {
     public var sourceURL: URL?
     public var sourceFile: String?
     public var isDemo: Bool
+    /// Session-level spend reported by the provider. OpenCode stores the
+    /// authoritative total on the session; message costs are a subset when
+    /// long sessions are trimmed on import.
+    public var cost: Double?
+    public var inputTokens: Int?
+    public var outputTokens: Int?
+    public var cachedTokens: Int?
 
     public init(
         id: String,
@@ -120,7 +150,11 @@ public struct ConversationThread: Identifiable, Codable, Hashable, Sendable {
         model: String? = nil,
         sourceURL: URL? = nil,
         sourceFile: String? = nil,
-        isDemo: Bool = false
+        isDemo: Bool = false,
+        cost: Double? = nil,
+        inputTokens: Int? = nil,
+        outputTokens: Int? = nil,
+        cachedTokens: Int? = nil
     ) {
         self.id = id
         self.provider = provider
@@ -132,9 +166,34 @@ public struct ConversationThread: Identifiable, Codable, Hashable, Sendable {
         self.sourceURL = sourceURL
         self.sourceFile = sourceFile
         self.isDemo = isDemo
+        self.cost = cost
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.cachedTokens = cachedTokens
     }
 
     public var messageCount: Int { messages.count }
+
+    /// True when the source reported spend, even if the amount is zero.
+    public var hasCostData: Bool {
+        cost != nil || messages.contains { $0.cost != nil }
+    }
+
+    public var totalCost: Double {
+        cost ?? messages.compactMap(\.cost).reduce(0, +)
+    }
+
+    public var tokenCount: Int {
+        if inputTokens != nil || outputTokens != nil || cachedTokens != nil {
+            return (inputTokens ?? 0) + (outputTokens ?? 0) + (cachedTokens ?? 0)
+        }
+        return messages.reduce(0) { $0 + $1.tokenCount }
+    }
+
+    public var costPerMessage: Double {
+        guard messageCount > 0 else { return 0 }
+        return totalCost / Double(messageCount)
+    }
     public var userMessageCount: Int { messages.filter { $0.role == .user }.count }
 
     public var characterCount: Int {
@@ -201,6 +260,8 @@ public struct ThreadLibrary: Codable, Sendable {
     public var earliestDate: Date? { threads.map(\.createdAt).min() }
     public var latestDate: Date? { threads.map(\.updatedAt).max() }
     public var messageCount: Int { threads.reduce(0) { $0 + $1.messageCount } }
+    public var totalCost: Double { threads.reduce(0) { $0 + $1.totalCost } }
+    public var costThreadCount: Int { threads.filter(\.hasCostData).count }
 
     public mutating func removeDemoData() {
         threads.removeAll(where: \.isDemo)

@@ -377,6 +377,9 @@ struct SidebarView: View {
                 signalToggle("NAMES", icon: "character.textbox", isOn: model.showNodeNames) {
                     model.showNodeNames.toggle()
                 }
+                signalToggle("COST", icon: "dollarsign.circle", isOn: model.showSpend) {
+                    model.toggleSpend()
+                }
                 signalToggle("MOTION", icon: "waveform.path", isOn: model.motionEnabled) {
                     model.motionEnabled.toggle()
                 }

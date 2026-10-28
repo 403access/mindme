@@ -169,6 +169,24 @@ Low-confidence text lands in `emerging` instead of a forced region. The
 taxonomy is plain data; bump `TopicTaxonomy.default.version` when seeds change
 to invalidate cached profiles.
 
+**Spend heat** is an opt-in renderer overlay (`showSpend`, off by default).
+OpenCode's importer copies session totals from `session_v2` and per-message
+cost/tokens from `session_message.data`; trimmed sessions rescale visible
+segment costs to the authoritative session total. `SegmentTopic` and
+`TopicShare` carry cost, `MindMapNode.cost` aggregates by hub, and
+`GraphStats.totalCost` / `costThreadCount` drive availability. When active:
+
+- hub colour comes from `HUD.spendColor(sqrt(cost / maxGroupCost))`
+- a circular gauge encodes the same intensity
+- badges switch from thread counts to dollar totals
+- thread nodes, group auras, and edges inherit the heat
+- spend-bearing conversations are placed in their costliest sub-region
+- the HUD strip reports total spend and the top region
+
+The toggle lives in the Signal panel, the map's top-right corner, and
+*Map → Show Spend Heat*. It refuses to turn on when the visible archive has no
+cost data.
+
 ---
 
 ## 4. Keyword pipeline (why the words are diamonds)
@@ -580,6 +598,7 @@ visualization:
 - `testDomainsAreClassifiedAtRegionLevel`, `testSegmentsSplitWhenTopicShifts`
 - `testRegionGroupingBuildsHierarchy`, `testDemoArchiveProducesRegionHierarchy`
 - `testPipelineIsDeterministic`, `testCachedProfilesAreReused`
+- `testSpendFollowsSegmentsAndRegions`, `testSessionCostRescalesTrimmedSegmentCosts`
 
 Determinism is a design constraint, not an accident: `StableID.hash` replaces
 `hashValue` (which is seeded per process) everywhere visual output depends on

@@ -15,6 +15,7 @@ The same constellation in spatial mode:
 - **Loads real conversations** — ChatGPT `conversations.json`, Google Takeout Gemini Apps activity, Claude `conversations.json`, HTML Takeout pages (best effort), the local OpenCode SQLite library, and a documented generic schema.
 - **Groups the map** by provider, shared topic keyword, time period, or hierarchical **region**.
 - **Classifies conversations and their parts** — each thread is segmented where the topic actually changes, then scored against an editable region spine (product, technology, legal, finance, design, research, operations, personal) with sub-regions underneath. A mixed project thread can be 60% technology and 40% legal; the inspector shows every segment.
+- **Shows where the money went** — an opt-in **COST** overlay heats regions and sub-regions by provider-reported spend, draws a gauge for each hub's share of the most expensive topic, and puts dollar totals on the map. Built for OpenCode archives; other providers simply have no cost data.
 - **Filters the signal** by source, time window, and free-text query, with a live thread index.
 - **Connects conversations** through shared keyword tags, creating bridges across providers without merging the underlying threads.
 - **Inspects everything** — select a node to read the transcript, see metadata, jump to the source in the browser, or click a tag to isolate every conversation behind it.
@@ -129,6 +130,18 @@ The pipeline runs entirely on-device:
 5. **Cache** profiles per thread content hash in `~/Library/Application Support/MindMap/topics.json`; importing new chats does not reclassify old ones.
 
 The default taxonomy lives in `Core/Sources/MindMapCore/Analysis/Topics/TopicTaxonomy.swift` and is mirrored to `~/Library/Application Support/MindMap/taxonomy.json` on first run. Edit labels, descriptions, or seeds there and use *Map → Reclassify Topics* (⌘⇧T) — no rebuild required. Low-confidence material lands in **Emerging** instead of being forced into a wrong region.
+
+### Spend heat
+
+OpenCode stores a dollar cost and token counts per session and per assistant message. Turn on **COST** in the Signal panel, the map's top-right controls, or *Map → Show Spend Heat* (off by default):
+
+- Hubs ramp from mint (cheap) through amber to coral (most expensive) and draw a circular gauge for their share of the priciest region.
+- Cost badges replace thread counts so the map stays about money while the overlay is on.
+- The telemetry strip shows total visible spend and the top region.
+- Open a thread or region to see total spend, tokens, cost per message, and per-segment costs.
+- A conversation is placed in the sub-region where most of its spend occurred, not merely where most of its text went.
+
+Spend never leaves the Mac and is read directly from the OpenCode database. ChatGPT, Gemini, and Claude exports do not include cost data, so the overlay simply has nothing to show for them.
 
 ## Reading the map
 

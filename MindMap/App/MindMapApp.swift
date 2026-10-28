@@ -127,6 +127,10 @@ struct AppCommands: Commands {
             Toggle("Show Tags", isOn: $model.showTags)
             Toggle("Show Labels", isOn: $model.showLabels)
             Toggle("Show Node Names", isOn: $model.showNodeNames)
+            Toggle("Show Spend Heat", isOn: Binding(
+                get: { model.showSpend },
+                set: { _ in model.toggleSpend() }
+            ))
             Toggle("Ambient Motion", isOn: $model.motionEnabled)
 
             Divider()

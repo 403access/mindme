@@ -8,13 +8,16 @@ public struct TopicShare: Identifiable, Codable, Hashable, Sendable {
     public var topicID: String
     public var label: String
     public var share: Double
+    /// Spend attributed to this region/sub-region for the thread.
+    public var cost: Double
 
     public var id: String { topicID }
 
-    public init(topicID: String, label: String, share: Double) {
+    public init(topicID: String, label: String, share: Double, cost: Double = 0) {
         self.topicID = topicID
         self.label = label
         self.share = share
+        self.cost = cost
     }
 
     public var percentage: Int { Int((share * 100).rounded()) }
@@ -35,6 +38,10 @@ public struct SegmentTopic: Identifiable, Codable, Hashable, Sendable {
     public var confidence: Double
     public var keywords: [String]
     public var characterCount: Int
+    public var cost: Double
+    public var inputTokens: Int
+    public var outputTokens: Int
+    public var cachedTokens: Int
 
     public init(
         id: String,
@@ -48,7 +55,11 @@ public struct SegmentTopic: Identifiable, Codable, Hashable, Sendable {
         regionLabel: String,
         confidence: Double,
         keywords: [String],
-        characterCount: Int
+        characterCount: Int,
+        cost: Double = 0,
+        inputTokens: Int = 0,
+        outputTokens: Int = 0,
+        cachedTokens: Int = 0
     ) {
         self.id = id
         self.startMessageIndex = startMessageIndex
@@ -62,6 +73,10 @@ public struct SegmentTopic: Identifiable, Codable, Hashable, Sendable {
         self.confidence = confidence
         self.keywords = keywords
         self.characterCount = characterCount
+        self.cost = cost
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.cachedTokens = cachedTokens
     }
 
     public var displayTitle: String { "\(regionLabel) · \(topicLabel)" }
@@ -77,6 +92,10 @@ public struct ThreadTopicProfile: Codable, Sendable {
     public var topics: [TopicShare]
     public var primaryRegionID: String
     public var primaryTopicID: String
+    public var totalCost: Double
+    public var inputTokens: Int
+    public var outputTokens: Int
+    public var cachedTokens: Int
     public var analyzedAt: Date
 
     public init(
@@ -87,6 +106,10 @@ public struct ThreadTopicProfile: Codable, Sendable {
         topics: [TopicShare],
         primaryRegionID: String,
         primaryTopicID: String,
+        totalCost: Double = 0,
+        inputTokens: Int = 0,
+        outputTokens: Int = 0,
+        cachedTokens: Int = 0,
         analyzedAt: Date
     ) {
         self.threadID = threadID
@@ -96,6 +119,10 @@ public struct ThreadTopicProfile: Codable, Sendable {
         self.topics = topics
         self.primaryRegionID = primaryRegionID
         self.primaryTopicID = primaryTopicID
+        self.totalCost = totalCost
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.cachedTokens = cachedTokens
         self.analyzedAt = analyzedAt
     }
 }
@@ -142,7 +169,7 @@ public struct TopicAnalysis: Codable, Sendable {
 /// Segment → classify → smooth → roll up. Pure and deterministic apart from
 /// the `analyzedAt` timestamps, so tests and cached runs agree exactly.
 public struct TopicPipeline: Sendable {
-    public static let pipelineVersion = 1
+    public static let pipelineVersion = 2
 
     public var taxonomy: TopicTaxonomy
     public var embedder: any TopicEmbeddingProvider
@@ -256,8 +283,50 @@ public struct TopicPipeline: Sendable {
                 topics: fallback.map { [TopicShare(topicID: $0.id, label: $0.label, share: 1)] } ?? [],
                 primaryRegionID: fallback?.parentID ?? fallback?.id ?? "emerging",
                 primaryTopicID: fallback?.id ?? "emerging/misc",
+                totalCost: thread.totalCost,
+                inputTokens: thread.inputTokens ?? 0,
+                outputTokens: thread.outputTokens ?? 0,
+                cachedTokens: thread.cachedTokens ?? 0,
                 analyzedAt: now
             )
+        }
+
+        // Spend follows the segment. The session total from OpenCode is
+        // authoritative, so when long sessions were trimmed on import the
+        // visible segment costs are scaled to match it instead of losing the
+        // omitted turns entirely.
+        var segmentCosts: [Double] = []
+        var inputTokens: [Int] = []
+        var outputTokens: [Int] = []
+        var cachedTokens: [Int] = []
+        for segment in segments {
+            let lower = max(0, min(thread.messages.count, segment.startMessageIndex))
+            let upper = max(lower, min(thread.messages.count, segment.endMessageIndex))
+            let slice = thread.messages[lower..<upper]
+            segmentCosts.append(slice.reduce(0) { $0 + ($1.cost ?? 0) })
+            inputTokens.append(slice.reduce(0) { $0 + ($1.inputTokens ?? 0) })
+            outputTokens.append(slice.reduce(0) { $0 + ($1.outputTokens ?? 0) })
+            cachedTokens.append(slice.reduce(0) { $0 + ($1.cachedTokens ?? 0) })
+        }
+
+        let visibleCost = segmentCosts.reduce(0, +)
+        let reportedCost = max(thread.cost ?? 0, visibleCost)
+        if reportedCost > visibleCost + 0.0000001 {
+            if visibleCost > 0 {
+                let factor = reportedCost / visibleCost
+                segmentCosts = segmentCosts.map { $0 * factor }
+            } else {
+                // No per-message cost survived trimming: attribute the
+                // session total by the same weight used for region mass.
+                let weights = segments.map { segment in
+                    max(120, Double(segment.userCharacterCount)
+                        + 0.25 * Double(max(0, segment.characterCount - segment.userCharacterCount)))
+                }
+                let totalWeight = weights.reduce(0, +)
+                if totalWeight > 0 {
+                    segmentCosts = weights.map { $0 / totalWeight * reportedCost }
+                }
+            }
         }
 
         let rawTitlePrior = classifier.distribution(for: thread.title)
@@ -271,6 +340,7 @@ public struct TopicPipeline: Sendable {
         let smoothed = Self.viterbi(distributions, taxonomy: taxonomy)
 
         var leafMass: [String: Double] = [:]
+        var leafCost: [String: Double] = [:]
         var segmentRows: [SegmentTopic] = []
         segmentRows.reserveCapacity(segments.count)
 
@@ -290,6 +360,8 @@ public struct TopicPipeline: Sendable {
             let keywords = KeywordExtractor
                 .keywords(inText: segment.text, idf: idf, limit: 4)
                 .map(\.term)
+            let segmentCost = index < segmentCosts.count ? segmentCosts[index] : 0
+            leafCost[topicID, default: 0] += segmentCost
             segmentRows.append(SegmentTopic(
                 id: segment.id,
                 startMessageIndex: segment.startMessageIndex,
@@ -302,7 +374,11 @@ public struct TopicPipeline: Sendable {
                 regionLabel: taxonomy.label(for: regionID),
                 confidence: distribution[topicID] ?? 0,
                 keywords: keywords,
-                characterCount: segment.characterCount
+                characterCount: segment.characterCount,
+                cost: segmentCost,
+                inputTokens: index < inputTokens.count ? inputTokens[index] : 0,
+                outputTokens: index < outputTokens.count ? outputTokens[index] : 0,
+                cachedTokens: index < cachedTokens.count ? cachedTokens[index] : 0
             ))
         }
 
@@ -314,17 +390,37 @@ public struct TopicPipeline: Sendable {
         }
 
         var regionMass: [String: Double] = [:]
+        var regionCost: [String: Double] = [:]
         for leafID in leafMass.keys.sorted() {
             let regionID = taxonomy.node(id: leafID)?.parentID ?? leafID
             regionMass[regionID, default: 0] += leafMass[leafID] ?? 0
+            regionCost[regionID, default: 0] += leafCost[leafID] ?? 0
         }
 
         let regions = regionMass
-            .map { TopicShare(topicID: $0.key, label: taxonomy.label(for: $0.key), share: $0.value) }
+            .map {
+                TopicShare(
+                    topicID: $0.key,
+                    label: taxonomy.label(for: $0.key),
+                    share: $0.value,
+                    cost: regionCost[$0.key] ?? 0
+                )
+            }
             .sorted(by: shareOrder)
         let topics = leafMass
-            .map { TopicShare(topicID: $0.key, label: taxonomy.label(for: $0.key), share: $0.value) }
+            .map {
+                TopicShare(
+                    topicID: $0.key,
+                    label: taxonomy.label(for: $0.key),
+                    share: $0.value,
+                    cost: leafCost[$0.key] ?? 0
+                )
+            }
             .sorted(by: shareOrder)
+
+        let totalInput = thread.inputTokens ?? inputTokens.reduce(0, +)
+        let totalOutput = thread.outputTokens ?? outputTokens.reduce(0, +)
+        let totalCached = thread.cachedTokens ?? cachedTokens.reduce(0, +)
 
         return ThreadTopicProfile(
             threadID: thread.id,
@@ -334,6 +430,10 @@ public struct TopicPipeline: Sendable {
             topics: topics,
             primaryRegionID: regions.first?.topicID ?? "emerging",
             primaryTopicID: topics.first?.topicID ?? "emerging/misc",
+            totalCost: reportedCost,
+            inputTokens: totalInput,
+            outputTokens: totalOutput,
+            cachedTokens: totalCached,
             analyzedAt: now
         )
     }
@@ -401,12 +501,24 @@ public struct TopicPipeline: Sendable {
     // MARK: Hashing
 
     public static func contentHash(for thread: ConversationThread) -> String {
-        var pieces: [String] = [thread.id, thread.title, "\(thread.messages.count)"]
-        pieces.reserveCapacity(thread.messages.count * 3 + 3)
+        var pieces: [String] = [
+            thread.id,
+            thread.title,
+            "\(thread.messages.count)",
+            "\(thread.cost ?? -1)",
+            "\(thread.inputTokens ?? -1)",
+            "\(thread.outputTokens ?? -1)",
+            "\(thread.cachedTokens ?? -1)"
+        ]
+        pieces.reserveCapacity(thread.messages.count * 7 + 7)
         for message in thread.messages {
             pieces.append(message.id)
             pieces.append(message.role.rawValue)
             pieces.append(message.text)
+            pieces.append("\(message.cost ?? -1)")
+            pieces.append("\(message.inputTokens ?? -1)")
+            pieces.append("\(message.outputTokens ?? -1)")
+            pieces.append("\(message.cachedTokens ?? -1)")
         }
         return StableID.hex(pieces.joined(separator: "\u{1f}"))
     }

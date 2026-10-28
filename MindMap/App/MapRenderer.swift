@@ -21,6 +21,7 @@ final class MapRenderer {
     let hoveredNodeID: String?
     let showLabels: Bool
     let showNodeNames: Bool
+    let showSpend: Bool
     let motion: Bool
     let hybridWords: Bool
     let focusPath: Set<String>
@@ -38,6 +39,7 @@ final class MapRenderer {
         hoveredNodeID: String?,
         showLabels: Bool,
         showNodeNames: Bool,
+        showSpend: Bool,
         motion: Bool,
         hybridWords: Bool,
         focusPath: Set<String>
@@ -54,6 +56,7 @@ final class MapRenderer {
         self.hoveredNodeID = hoveredNodeID
         self.showLabels = showLabels
         self.showNodeNames = showNodeNames
+        self.showSpend = showSpend
         self.motion = motion
         self.hybridWords = hybridWords
         self.focusPath = focusPath
@@ -85,6 +88,15 @@ final class MapRenderer {
 
     private var halfWidth: CGFloat { size.width / 2 }
     private var halfHeight: CGFloat { size.height / 2 }
+
+    private var spendActive: Bool { showSpend && graph.hasCostData }
+    private var groupSpendCeiling: Double { graph.maxGroupCost }
+    private var threadSpendCeiling: Double { graph.maxThreadCost }
+
+    private func spendIntensity(_ cost: Double, ceiling: Double) -> Double {
+        guard spendActive, cost > 0, ceiling > 0 else { return 0 }
+        return sqrt(min(1, cost / ceiling))
+    }
 
     private var focusID: String? { selectedNodeID ?? hoveredNodeID }
     private var focusSet: Set<String> { focusPath }
@@ -118,7 +130,9 @@ final class MapRenderer {
             }
             let radius = maxDistance + 70
             guard radius > 30 else { continue }
-            let color = HUD.color(for: group)
+            let intensity = spendIntensity(group.cost, ceiling: groupSpendCeiling)
+            let color = intensity > 0.015 ? HUD.spendColor(intensity) : HUD.color(for: group)
+            let hotAlpha = 0.06 + 0.10 * intensity
             context.fill(
                 Path(ellipseIn: CGRect(
                     x: center.x - radius,
@@ -127,7 +141,7 @@ final class MapRenderer {
                     height: radius * 2
                 )),
                 with: .radialGradient(
-                    Gradient(colors: [color.opacity(0.06), color.opacity(0.018), .clear]),
+                    Gradient(colors: [color.opacity(hotAlpha), color.opacity(0.018), .clear]),
                     center: center,
                     startRadius: 0,
                     endRadius: radius
@@ -397,7 +411,16 @@ final class MapRenderer {
     // MARK: - Edges
 
     private func edgeTint(_ edge: MindMapEdge) -> Color {
-        if let node = graph.node(id: edge.source) {
+        // Root and region edges point at the hub whose spend defines the tint;
+        // group→thread edges inherit their group.
+        let nodeID = (edge.kind == .rootGroup || edge.kind == .regionGroup)
+            ? edge.target
+            : edge.source
+        if let node = graph.node(id: nodeID) {
+            if spendActive, node.kind == .group {
+                let intensity = spendIntensity(node.cost, ceiling: groupSpendCeiling)
+                if intensity > 0.015 { return HUD.spendColor(intensity) }
+            }
             return HUD.color(for: node)
         }
         return HUD.accent
@@ -632,13 +655,15 @@ final class MapRenderer {
     }
 
     private func drawGroup(_ node: MindMapNode, at point: CGPoint, context: inout GraphicsContext) {
-        let color = HUD.color(for: node)
         let selected = selectedNodeID == node.id
         let hovered = hoveredNodeID == node.id
         let focused = isHighlighted(node.id)
         let dimmed = isDimmed(node.id)
-        let presence = dimmed ? 0.36 : 1.0
-        let radius: CGFloat = 23
+        let intensity = spendIntensity(node.cost, ceiling: groupSpendCeiling)
+        let spendMuted = spendActive && node.cost <= 0
+        let presence = dimmed ? 0.36 : (spendMuted ? 0.62 : 1.0)
+        let color = intensity > 0.015 ? HUD.spendColor(intensity) : HUD.color(for: node)
+        let radius: CGFloat = 26
 
         // Halo
         let haloRadius = radius + (selected ? 22 : 14)
@@ -676,6 +701,24 @@ final class MapRenderer {
             with: .color(color.opacity(0.30 * presence)),
             style: StrokeStyle(lineWidth: 0.8, dash: [2, 7], dashPhase: time * (selected ? 14 : 6))
         )
+
+        // Spend gauge: a filled arc proportional to this hub's share of the
+        // most expensive region. Magnitude is legible without reading numbers.
+        if intensity > 0.01 {
+            var gauge = Path()
+            gauge.addArc(
+                center: point,
+                radius: radius + 16,
+                startAngle: .degrees(-90),
+                endAngle: .degrees(-90 + 360 * intensity),
+                clockwise: false
+            )
+            context.stroke(
+                gauge,
+                with: .color(HUD.spendColor(intensity).opacity(0.9 * presence)),
+                style: StrokeStyle(lineWidth: 2.1, lineCap: .round)
+            )
+        }
 
         // Hexagon body
         let hex = hexagonPath(center: point, radius: radius, rotation: .pi / 6)
@@ -716,9 +759,23 @@ final class MapRenderer {
             context: &context
         )
 
-        // Count badge sits on the outward side, opposite the label.
+        // Badge sits on the outward side. In spend mode it carries the region's
+        // dollar total; otherwise it keeps the thread count.
         let count = node.subtitle?.split(separator: " ").first.map(String.init) ?? ""
-        if !count.isEmpty {
+        let showsCost = spendActive && node.cost > 0
+        // Only the meaningful spenders get a floating dollar amount. The heat
+        // ramp still encodes everything; badges would otherwise turn the map
+        // into a wall of $0.02 labels.
+        let spendBadgeFloor = max(0.01, groupSpendCeiling * 0.035)
+        // In spend mode the badge is either a meaningful dollar amount or
+        // absent; mixing thread counts into a heat map reads as noise.
+        let badgeLabel: String
+        if spendActive {
+            badgeLabel = node.cost >= spendBadgeFloor ? Format.cost(node.cost) : ""
+        } else {
+            badgeLabel = count
+        }
+        if !badgeLabel.isEmpty {
             let rootPoint = displayPoint("root") ?? CGPoint(x: halfWidth, y: halfHeight)
             let outwardX = point.x - rootPoint.x
             let outwardY = point.y - rootPoint.y
@@ -727,18 +784,29 @@ final class MapRenderer {
                 x: point.x + outwardX / outwardLength * (radius + 12),
                 y: point.y + outwardY / outwardLength * (radius + 12)
             )
-            let badgeRect = CGRect(x: badgeCenter.x - 7, y: badgeCenter.y - 7, width: 14, height: 14)
-            context.fill(Path(ellipseIn: badgeRect), with: .color(Color(hex: 0x060B13).opacity(0.95)))
-            context.stroke(Path(ellipseIn: badgeRect), with: .color(color.opacity(0.7 * presence)), lineWidth: 0.7)
-            drawText(
-                count,
-                at: badgeCenter,
-                font: HUDFont.micro(6.8),
-                color: color.opacity(0.9 * presence),
-                anchor: .center,
-                tracking: 0,
-                context: &context
+            let resolved = context.resolve(
+                Text(badgeLabel)
+                    .font(HUDFont.micro(6.8))
+                    .foregroundColor((showsCost ? HUD.spendColor(intensity) : color).opacity(0.95 * presence))
+                    .tracking(0)
             )
+            let measured = resolved.measure(in: CGSize(width: 140, height: 20))
+            let height: CGFloat = 14
+            let width = max(14, measured.width + (showsCost ? 9 : 5))
+            let badgeRect = CGRect(
+                x: badgeCenter.x - width / 2,
+                y: badgeCenter.y - height / 2,
+                width: width,
+                height: height
+            )
+            let badgePath = Path(roundedRect: badgeRect, cornerRadius: height / 2)
+            context.fill(badgePath, with: .color(Color(hex: 0x060B13).opacity(0.95)))
+            context.stroke(
+                badgePath,
+                with: .color((showsCost ? HUD.spendColor(intensity) : color).opacity(0.75 * presence)),
+                lineWidth: 0.7
+            )
+            context.draw(resolved, at: badgeCenter, anchor: .center)
         }
 
         if selected || hovered {
@@ -747,13 +815,15 @@ final class MapRenderer {
     }
 
     private func drawThread(_ node: MindMapNode, at point: CGPoint, context: inout GraphicsContext) {
-        let color = HUD.color(for: node)
+        let intensity = spendIntensity(node.cost, ceiling: threadSpendCeiling)
+        let color = intensity > 0.015 ? HUD.spendColor(intensity) : HUD.color(for: node)
         let selected = selectedNodeID == node.id
         let hovered = hoveredNodeID == node.id
         let highlighted = isHighlighted(node.id)
         let dimmed = isDimmed(node.id)
         let presence = dimmed ? 0.28 : 1.0
         let radius = threadRadius(node, selected: selected, hovered: hovered)
+            + (intensity > 0.015 ? CGFloat(intensity * 1.7) : 0)
 
         if !dimmed {
             let glow = radius + (selected ? 12 : hovered ? 9 : 5)
@@ -1071,8 +1141,13 @@ final class MapRenderer {
                 guard let projected = projection(for: group.id) else { continue }
                 let selected = selectedNodeID == group.id
                 let hovered = hoveredNodeID == group.id
+                // With NAMES on, the hub already carries its name inside the
+                // hexagon. Only surface the larger plate for focus states,
+                // otherwise every topic would read twice.
+                if showNodeNames, !selected, !hovered { continue }
                 let dimmed = isDimmed(group.id)
-                let color = HUD.color(for: group)
+                let spend = spendIntensity(group.cost, ceiling: groupSpendCeiling)
+                let color = spend > 0.015 ? HUD.spendColor(spend) : HUD.color(for: group)
                 let alpha = depthAlpha(projected) * (dimmed ? 0.3 : 1)
                 let label = shorten(group.label, limit: 22)
                 let resolved = context.resolve(
@@ -1177,7 +1252,7 @@ final class MapRenderer {
     /// hexagon instead of being clipped to a generic monogram.
     private func hubNameSize(for text: String) -> CGFloat {
         let count = max(4, text.count)
-        return max(4.8, min(7.4, 7.4 * 7.0 / CGFloat(count)))
+        return max(5.4, min(8.0, 8.0 * 7.0 / CGFloat(count)))
     }
 
     private func shorten(_ text: String, limit: Int) -> String {

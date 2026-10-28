@@ -46,6 +46,31 @@ enum HUD {
         topicPalette[abs(seed) % topicPalette.count]
     }
 
+    /// Spend heat: mint for cheap, amber for notable, coral for the expensive
+    /// tail. Interpolated in RGB so the ramp reads continuously on the map.
+    static func spendColor(_ intensity: Double) -> Color {
+        let t = min(max(intensity, 0), 1)
+        let stops: [(Double, (Double, Double, Double))] = [
+            (0.0, (0.25, 0.91, 0.72)),
+            (0.45, (1.0, 0.77, 0.32)),
+            (1.0, (1.0, 0.33, 0.42))
+        ]
+        for index in 1..<stops.count {
+            let (upperStop, upper) = stops[index]
+            let (lowerStop, lower) = stops[index - 1]
+            guard t <= upperStop else { continue }
+            let span = max(0.0001, upperStop - lowerStop)
+            let fraction = (t - lowerStop) / span
+            return Color(
+                red: lower.0 + (upper.0 - lower.0) * fraction,
+                green: lower.1 + (upper.1 - lower.1) * fraction,
+                blue: lower.2 + (upper.2 - lower.2) * fraction
+            )
+        }
+        let last = stops[stops.count - 1].1
+        return Color(red: last.0, green: last.1, blue: last.2)
+    }
+
     static func color(for node: MindMapNode) -> Color {
         switch node.kind {
         case .root: return accent
@@ -482,9 +507,19 @@ enum Format {
     }
 
     static func compactCount(_ value: Int) -> String {
+        if value >= 1_000_000_000 { return String(format: "%.1fB", Double(value) / 1_000_000_000) }
         if value >= 1_000_000 { return String(format: "%.1fM", Double(value) / 1_000_000) }
         if value >= 1_000 { return String(format: "%.1fk", Double(value) / 1_000) }
         return "\(value)"
+    }
+
+    static func cost(_ value: Double) -> String {
+        guard value > 0 else { return "$0.00" }
+        if value >= 1_000 { return "$" + compactCount(Int(value)) }
+        if value >= 1 { return String(format: "$%.2f", value) }
+        if value >= 0.1 { return String(format: "$%.2f", value) }
+        if value >= 0.001 { return String(format: "$%.3f", value) }
+        return "<$0.001"
     }
 
     static func relative(_ date: Date) -> String {

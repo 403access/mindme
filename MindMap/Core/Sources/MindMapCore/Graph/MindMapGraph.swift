@@ -96,6 +96,9 @@ public struct MindMapNode: Identifiable, Hashable, Sendable {
     public var parentID: String?
     public var weight: Double
     public var colorSeed: Int
+    /// Provider-reported spend attached to this hub or conversation.
+    public var cost: Double
+    public var tokenCount: Int
 
     public init(
         id: String,
@@ -108,7 +111,9 @@ public struct MindMapNode: Identifiable, Hashable, Sendable {
         tag: String? = nil,
         parentID: String? = nil,
         weight: Double = 1,
-        colorSeed: Int = 0
+        colorSeed: Int = 0,
+        cost: Double = 0,
+        tokenCount: Int = 0
     ) {
         self.id = id
         self.kind = kind
@@ -121,6 +126,8 @@ public struct MindMapNode: Identifiable, Hashable, Sendable {
         self.parentID = parentID
         self.weight = weight
         self.colorSeed = colorSeed
+        self.cost = cost
+        self.tokenCount = tokenCount
     }
 }
 
@@ -156,6 +163,8 @@ public struct GraphStats: Equatable, Sendable {
     public var earliest: Date?
     public var latest: Date?
     public var unfilteredThreadCount: Int
+    public var totalCost: Double
+    public var costThreadCount: Int
 
     public init(
         threadCount: Int = 0,
@@ -165,7 +174,9 @@ public struct GraphStats: Equatable, Sendable {
         characterCount: Int = 0,
         earliest: Date? = nil,
         latest: Date? = nil,
-        unfilteredThreadCount: Int = 0
+        unfilteredThreadCount: Int = 0,
+        totalCost: Double = 0,
+        costThreadCount: Int = 0
     ) {
         self.threadCount = threadCount
         self.messageCount = messageCount
@@ -175,6 +186,8 @@ public struct GraphStats: Equatable, Sendable {
         self.earliest = earliest
         self.latest = latest
         self.unfilteredThreadCount = unfilteredThreadCount
+        self.totalCost = totalCost
+        self.costThreadCount = costThreadCount
     }
 }
 
@@ -207,6 +220,10 @@ public struct MindMapGraph: Sendable {
         guard let id else { return nil }
         return nodes.first { $0.id == id }
     }
+
+    public var hasCostData: Bool { stats.costThreadCount > 0 }
+    public var maxGroupCost: Double { groupNodes.map(\.cost).max() ?? 0 }
+    public var maxThreadCost: Double { threadNodes.map(\.cost).max() ?? 0 }
 
     public var rootNode: MindMapNode? { nodes.first { $0.kind == .root } }
     public var groupNodes: [MindMapNode] { nodes.filter { $0.kind == .group } }

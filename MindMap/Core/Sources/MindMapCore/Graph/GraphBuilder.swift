@@ -95,14 +95,34 @@ public enum GraphBuilder {
             let roots = analysis.taxonomy.roots
             var threadsByRoot: [String: [String]] = [:]
             var threadsByLeaf: [String: [String]] = [:]
+            var costByRoot: [String: Double] = [:]
+            var costByLeaf: [String: Double] = [:]
+
             for thread in limited {
                 let profile = analysis.profiles[thread.id]
-                let leafID = profile?.primaryTopicID ?? "emerging/misc"
+                // Spend-aware placement: when a conversation's parts have
+                // different costs, park it where most of the money went.
+                // Without costs this is the usual mass-primary topic.
+                let costliest = profile?.topics
+                    .filter { $0.cost > 0 }
+                    .max { a, b in
+                        if abs(a.cost - b.cost) > 0.000001 { return a.cost < b.cost }
+                        return a.share < b.share
+                    }
+                let leafID = costliest?.topicID
+                    ?? profile?.primaryTopicID
+                    ?? "emerging/misc"
                 let rootID = analysis.taxonomy.node(id: leafID)?.parentID
                     ?? profile?.primaryRegionID
                     ?? "emerging"
                 threadsByLeaf[leafID, default: []].append(thread.id)
                 threadsByRoot[rootID, default: []].append(thread.id)
+
+                let threadCost = profile?.totalCost ?? thread.totalCost
+                if threadCost > 0 {
+                    costByLeaf[leafID, default: 0] += threadCost
+                    costByRoot[rootID, default: 0] += threadCost
+                }
             }
 
             for (rootIndex, root) in roots.enumerated() {
@@ -119,7 +139,8 @@ public enum GraphBuilder {
                     priority: rootIndex,
                     parentID: nil,
                     threadIDs: [],
-                    displayWeight: Double(rootThreads.count)
+                    displayWeight: Double(rootThreads.count),
+                    cost: costByRoot[root.id] ?? 0
                 ))
 
                 // A domain with threads but no classified child still needs a
@@ -143,7 +164,8 @@ public enum GraphBuilder {
                         colorSeed: rootIndex,
                         priority: rootIndex,
                         parentID: regionID,
-                        threadIDs: child.threadIDs
+                        threadIDs: child.threadIDs,
+                        cost: costByLeaf[child.id] ?? 0
                     ))
                     for threadID in child.threadIDs {
                         groupIDByThread[threadID] = childID
@@ -167,7 +189,8 @@ public enum GraphBuilder {
                         priority: 99,
                         parentID: nil,
                         threadIDs: [],
-                        displayWeight: Double(orphans.count)
+                        displayWeight: Double(orphans.count),
+                        cost: orphans.reduce(0) { $0 + $1.totalCost }
                     ))
                 }
                 let childID = "region:emerging/misc"
@@ -179,7 +202,8 @@ public enum GraphBuilder {
                     colorSeed: roots.count,
                     priority: 99,
                     parentID: regionID,
-                    threadIDs: orphans.map(\.id)
+                    threadIDs: orphans.map(\.id),
+                    cost: orphans.reduce(0) { $0 + $1.totalCost }
                 ))
                 for thread in orphans { groupIDByThread[thread.id] = childID }
             }
@@ -199,6 +223,16 @@ public enum GraphBuilder {
                 )
                 groups.append(spec)
                 for threadID in bucket.threadIDs { groupIDByThread[threadID] = spec.id }
+            }
+        }
+
+        // Spend -------------------------------------------------------------
+        // Region roots carry explicit profile costs; flat groups sum their
+        // threads. The fallback also covers zero-cost region children.
+        let threadByID = Dictionary(uniqueKeysWithValues: limited.map { ($0.id, $0) })
+        for index in groups.indices where groups[index].cost == 0 {
+            groups[index].cost = groups[index].threadIDs.reduce(0) {
+                $0 + (threadByID[$1]?.totalCost ?? 0)
             }
         }
 
@@ -245,7 +279,9 @@ public enum GraphBuilder {
                 provider: group.provider,
                 parentID: group.parentID,
                 weight: group.displayWeight ?? Double(group.threadIDs.count),
-                colorSeed: group.provider?.order ?? (group.colorSeed + 1) % 12
+                colorSeed: group.provider?.order ?? (group.colorSeed + 1) % 12,
+                cost: group.cost,
+                tokenCount: group.threadIDs.compactMap { threadByID[$0]?.tokenCount }.reduce(0, +)
             ))
             let edgeWeight = Double(max(1, group.threadIDs.count))
             if let parentID = group.parentID {
@@ -276,7 +312,9 @@ public enum GraphBuilder {
                     groupID: group.id,
                     threadID: thread.id,
                     weight: 1.0 + min(3.0, log(1.0 + Double(thread.messageCount)) * 0.55),
-                    colorSeed: group.provider?.order ?? (index % 12)
+                    colorSeed: group.provider?.order ?? (index % 12),
+                    cost: thread.totalCost,
+                    tokenCount: thread.tokenCount
                 ))
                 edges.append(MindMapEdge(
                     source: group.id,
@@ -338,7 +376,9 @@ public enum GraphBuilder {
             characterCount: characters,
             earliest: limited.map(\.createdAt).min(),
             latest: limited.map(\.updatedAt).max(),
-            unfilteredThreadCount: library.threads.count
+            unfilteredThreadCount: library.threads.count,
+            totalCost: limited.reduce(0) { $0 + $1.totalCost },
+            costThreadCount: limited.filter(\.hasCostData).count
         )
 
         return MindMapGraph(
@@ -363,6 +403,7 @@ public enum GraphBuilder {
         var threadIDs: [String]
         /// Weight for container groups that do not own thread nodes directly.
         var displayWeight: Double? = nil
+        var cost: Double = 0
     }
 
     private struct EraBucket {

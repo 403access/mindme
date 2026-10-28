@@ -159,6 +159,48 @@ final class TopicTests: XCTestCase {
         }
     }
 
+    func testSpendFollowsSegmentsAndRegions() {
+        var thread = mixedProjectThread()
+        thread.cost = 1.5
+        // Assistant replies carry OpenCode-style per-message cost.
+        thread.messages[1].cost = 0.75
+        thread.messages[5].cost = 0.75
+
+        let profile = TopicPipeline().analyze(thread)
+        XCTAssertEqual(profile.totalCost, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(profile.segments.reduce(0) { $0 + $1.cost }, 1.5, accuracy: 0.0001)
+
+        let technology = try! XCTUnwrap(profile.regions.first { $0.topicID == "technology" })
+        let legal = try! XCTUnwrap(profile.regions.first { $0.topicID == "legal" })
+        XCTAssertEqual(technology.cost + legal.cost, 1.5, accuracy: 0.0001)
+        XCTAssertGreaterThan(technology.cost, 0)
+        XCTAssertGreaterThan(legal.cost, 0)
+
+        var filters = GraphFilters.default
+        filters.grouping = .region
+        let library = ThreadLibrary(threads: [thread])
+        let graph = GraphBuilder.build(library: library, filters: filters, topicAnalysis: TopicPipeline().analyze(library))
+        XCTAssertEqual(graph.stats.totalCost, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(graph.stats.costThreadCount, 1)
+        XCTAssertEqual(graph.threadNodes.first?.cost ?? 0, 1.5, accuracy: 0.0001)
+        let regionRoots = graph.groupNodes.filter { $0.parentID == nil }
+        XCTAssertEqual(regionRoots.reduce(0) { $0 + $1.cost }, 1.5, accuracy: 0.0001)
+        XCTAssertTrue(graph.groupNodes.contains { $0.parentID != nil && $0.cost > 0 })
+    }
+
+    func testSessionCostRescalesTrimmedSegmentCosts() {
+        var thread = mixedProjectThread()
+        thread.cost = 3.0
+        // Only two visible assistant messages carry 0.25 each; the session
+        // total says 3.0 because many messages were trimmed on import.
+        thread.messages[1].cost = 0.25
+        thread.messages[5].cost = 0.25
+
+        let profile = TopicPipeline().analyze(thread)
+        XCTAssertEqual(profile.totalCost, 3.0, accuracy: 0.0001)
+        XCTAssertEqual(profile.segments.reduce(0) { $0 + $1.cost }, 3.0, accuracy: 0.0001)
+    }
+
     func testLowConfidenceFallsBackToEmerging() {
         let thread = thread(
             id: "vague",

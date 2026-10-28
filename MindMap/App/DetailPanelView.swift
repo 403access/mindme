@@ -145,6 +145,14 @@ struct DetailPanelView: View {
 
             statsGrid(thread)
 
+            if model.showSpend, thread.hasCostData {
+                spendStrip(
+                    cost: thread.totalCost,
+                    tokens: thread.tokenCount,
+                    detail: "\(Format.cost(thread.costPerMessage)) / MESSAGE"
+                )
+            }
+
             if let profile = model.topicProfile(for: thread.id), !profile.segments.isEmpty {
                 regionSection(profile)
             }
@@ -182,6 +190,36 @@ struct DetailPanelView: View {
         }
     }
 
+    private func spendStrip(cost: Double, tokens: Int, detail: String) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 3) {
+                MicroLabel(text: "Spend", color: HUD.textSoft)
+                Text(Format.cost(cost))
+                    .font(HUDFont.label(15))
+                    .foregroundStyle(HUD.amber)
+            }
+            Spacer(minLength: 4)
+            VStack(alignment: .trailing, spacing: 3) {
+                if tokens > 0 {
+                    Text("\(Format.compactCount(tokens)) TOKENS")
+                        .font(HUDFont.micro(6.5))
+                        .tracking(0.6)
+                        .foregroundStyle(HUD.textSoft)
+                }
+                Text(detail)
+                    .font(HUDFont.micro(6.5))
+                    .tracking(0.6)
+                    .foregroundStyle(HUD.dim)
+            }
+        }
+        .padding(9)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(HUD.amber.opacity(0.045))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HUD.amber.opacity(0.22), lineWidth: 0.8))
+        )
+    }
+
     private func regionSection(_ profile: ThreadTopicProfile) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
@@ -199,8 +237,12 @@ struct DetailPanelView: View {
 
             FlowLayout(spacing: 5, lineSpacing: 5) {
                 ForEach(profile.regions.prefix(4)) { share in
-                    Text("\(share.label.uppercased()) \(share.percentage)%")
-                        .font(HUDFont.micro(6.5))
+                    Text(
+                        model.showSpend && share.cost > 0
+                            ? "\(share.label.uppercased()) \(share.percentage)% · \(Format.cost(share.cost))"
+                            : "\(share.label.uppercased()) \(share.percentage)%"
+                    )
+                    .font(HUDFont.micro(6.5))
                         .tracking(0.5)
                         .foregroundStyle(HUD.textSoft)
                         .padding(.horizontal, 6)
@@ -227,6 +269,11 @@ struct DetailPanelView: View {
                         Text("\(segment.startMessageIndex + 1)–\(segment.endMessageIndex)")
                             .font(HUDFont.micro(6.5))
                             .foregroundStyle(HUD.dim)
+                        if model.showSpend, segment.cost > 0 {
+                            Text(Format.cost(segment.cost))
+                                .font(HUDFont.micro(6.5))
+                                .foregroundStyle(HUD.amber)
+                        }
                         Text("\(Int((segment.confidence * 100).rounded()))%")
                             .font(HUDFont.micro(6.5))
                             .foregroundStyle(HUD.dim)
@@ -364,6 +411,15 @@ struct DetailPanelView: View {
                     .fill(Color.white.opacity(0.025))
                     .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(HUD.hairline, lineWidth: 0.8))
             )
+
+            if model.showSpend, node.cost > 0 {
+                let costed = threads.filter(\.hasCostData).count
+                spendStrip(
+                    cost: node.cost,
+                    tokens: node.tokenCount,
+                    detail: "\(costed) OF \(threads.count) THREADS COSTED"
+                )
+            }
 
             HStack(spacing: 8) {
                 MicroLabel(text: node.kind == .root ? "Recent signal" : "Connected threads", color: HUD.textSoft)

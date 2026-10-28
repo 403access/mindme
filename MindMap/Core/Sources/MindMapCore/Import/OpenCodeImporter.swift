@@ -81,6 +81,10 @@ private struct OpenCodeSessionRow {
     var createdAt: Date
     var updatedAt: Date
     var model: String?
+    var cost: Double?
+    var inputTokens: Int?
+    var outputTokens: Int?
+    var cachedTokens: Int?
 }
 
 private struct OpenCodeMessageDraft {
@@ -89,6 +93,10 @@ private struct OpenCodeMessageDraft {
     var role: MessageRole
     var text: String
     var timestamp: Date?
+    var cost: Double?
+    var inputTokens: Int?
+    var outputTokens: Int?
+    var cachedTokens: Int?
 }
 
 private final class OpenCodeDatabase {
@@ -119,10 +127,12 @@ private final class OpenCodeDatabase {
             )
         }
 
+        let hasCost = try hasColumn("cost", in: "session_v2", database: handle)
+        let costColumns = hasCost ? ", cost, tokens_input, tokens_output, tokens_cache_read" : ""
         let statement = try SQLiteStatement(
             database: handle,
             sql: """
-            SELECT id, title, time_created, time_updated, model
+            SELECT id, title, time_created, time_updated, model\(costColumns)
             FROM session_v2
             WHERE parent_id IS NULL AND time_archived IS NULL
             ORDER BY time_updated DESC
@@ -142,7 +152,11 @@ private final class OpenCodeDatabase {
                 title: statement.text(1)?.trimmingCharacters(in: .whitespacesAndNewlines),
                 createdAt: created,
                 updatedAt: updated,
-                model: Self.modelLabel(statement.text(4))
+                model: Self.modelLabel(statement.text(4)),
+                cost: hasCost ? statement.double(5) : nil,
+                inputTokens: hasCost ? Int(statement.int64(6)) : nil,
+                outputTokens: hasCost ? Int(statement.int64(7)) : nil,
+                cachedTokens: hasCost ? Int(statement.int64(8)) : nil
             ))
         }
         return rows
@@ -186,7 +200,11 @@ private final class OpenCodeDatabase {
                 id: "opencode:\($0.id)",
                 role: $0.role,
                 text: $0.text,
-                timestamp: $0.timestamp
+                timestamp: $0.timestamp,
+                cost: $0.cost,
+                inputTokens: $0.inputTokens,
+                outputTokens: $0.outputTokens,
+                cachedTokens: $0.cachedTokens
             )
         }
 
@@ -210,7 +228,11 @@ private final class OpenCodeDatabase {
             messages: messages,
             model: session.model,
             sourceURL: nil,
-            sourceFile: sourceName
+            sourceFile: sourceName,
+            cost: session.cost,
+            inputTokens: session.inputTokens,
+            outputTokens: session.outputTokens,
+            cachedTokens: session.cachedTokens
         )
     }
 
@@ -248,12 +270,20 @@ private final class OpenCodeDatabase {
             let timeObject = object["time"] as? [String: Any]
             let timestamp = FlexibleDate.parse(timeObject?["created"])
 
+            let tokens = object["tokens"] as? [String: Any]
+            let cache = tokens?["cache"] as? [String: Any]
             drafts[seq] = OpenCodeMessageDraft(
                 seq: seq,
                 id: id,
                 role: role,
                 text: text,
-                timestamp: timestamp
+                timestamp: timestamp,
+                cost: role == .assistant ? object.double("cost") : nil,
+                inputTokens: role == .assistant ? tokens?.int("input") : nil,
+                outputTokens: role == .assistant ? tokens?.int("output") : nil,
+                cachedTokens: role == .assistant
+                    ? ((cache?.int("read") ?? 0) + (cache?.int("write") ?? 0))
+                    : nil
             )
         }
     }
@@ -281,6 +311,17 @@ private final class OpenCodeDatabase {
             return id
         }
         return raw.count <= 72 ? raw : nil
+    }
+
+    private func hasColumn(_ column: String, in table: String, database: OpaquePointer) throws -> Bool {
+        let statement = try SQLiteStatement(
+            database: database,
+            sql: "PRAGMA table_info(\(table))"
+        )
+        while try statement.step() {
+            if statement.text(1) == column { return true }
+        }
+        return false
     }
 
     private func hasTable(_ name: String, in database: OpaquePointer) throws -> Bool {
