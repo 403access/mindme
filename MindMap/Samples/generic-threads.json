@@ -1,0 +1,15 @@
+{
+  "threads": [
+    {
+      "id": "local-1",
+      "provider": "other",
+      "title": "ESP32 sensor mesh with Matter",
+      "createdAt": "2026-04-04T12:00:00Z",
+      "model": "local-llama-3.3-70b",
+      "messages": [
+        {"role": "user", "text": "ESP-NOW sensors with one bridge or Matter on every device?", "timestamp": "2026-04-04T12:00:00Z"},
+        {"role": "assistant", "text": "Keep the radios boring and the gateway smart. Use Matter at the edge where ecosystem compatibility matters, not on every battery-powered sensor.", "timestamp": "2026-04-04T12:00:30Z"}
+      ]
+    }
+  ]
+}

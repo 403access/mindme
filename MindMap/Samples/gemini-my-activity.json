@@ -1,0 +1,14 @@
+[
+  {"header": "Gemini Apps", "title": "Said \"How do I learn kanji through vocabulary instead of isolated characters?\"",
+   "titleUrl": "https://gemini.google.com/app/sample-kanji", "time": "2026-02-11T18:30:00.000Z",
+   "products": ["Gemini Apps"]},
+  {"header": "Gemini Apps", "title": "Said \"What about radicals?\"",
+   "titleUrl": "https://gemini.google.com/app/sample-kanji", "time": "2026-02-11T18:34:00.000Z",
+   "products": ["Gemini Apps"]},
+  {"header": "Gemini Apps", "title": "Said \"Design a solar punk transit map for Stuttgart with honest travel times\"",
+   "titleUrl": "https://gemini.google.com/app/sample-transit", "time": "2026-03-02T09:10:00.000Z",
+   "products": ["Gemini Apps"]},
+  {"header": "Gemini Apps", "title": "Said \"Which colour families should separate rail and trams?\"",
+   "titleUrl": "https://gemini.google.com/app/sample-transit", "time": "2026-03-02T09:16:00.000Z",
+   "products": ["Gemini Apps"]}
+]

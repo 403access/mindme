@@ -1,0 +1,9 @@
+.DS_Store
+MindMap/.build/
+MindMap/.build-release/
+MindMap/dist/
+MindMap/MindMap.xcodeproj/xcuserdata/
+MindMap/MindMap.xcodeproj/project.xcworkspace/xcuserdata/
+MindMap/Core/.build/
+DerivedData/
+*.xcuserstate

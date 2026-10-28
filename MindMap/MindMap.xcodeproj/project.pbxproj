@@ -1,0 +1,395 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		22AC8C80F774C52D26943709 /* GraphCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */; };
+		36DF99A83B51CBFB9F5BBF5B /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */; };
+		3A43E3035137513A9919BE61 /* MindMapCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3B8EA961BD5333122169B4FE /* MindMapCore */; };
+		458911454E0459E3FB1E8D82 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03CCB62197FEC868B6386B5 /* Theme.swift */; };
+		4642136CC7D1BE404F99F1E2 /* MapRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F26818BD2B4233A0B707255 /* MapRenderer.swift */; };
+		6DDBDA38B940CD7080F955A6 /* MindMapApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */; };
+		8E3A30164D104DF1F67BC893 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9076702BDBAB5B610FDB8 /* RootView.swift */; };
+		919EB876A74CC18F10A3CC81 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */; };
+		BA82FAA875CA7528F02AE7EC /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F632140FF2996A97BD75178 /* HelpView.swift */; };
+		CBE39337AA0424CBBB6C9E8A /* DetailPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E96CC769620FBAAA74B912 /* DetailPanelView.swift */; };
+		F515331EAD77317AECDD0107 /* GraphEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */; };
+		FC05F7D57FBAA8EE5CEC6E3E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4C3F2F5A60B6FC37451E5BB0 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphCanvasView.swift; sourceTree = "<group>"; };
+		38E96CC769620FBAAA74B912 /* DetailPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailPanelView.swift; sourceTree = "<group>"; };
+		3F632140FF2996A97BD75178 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
+		4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		4C3F2F5A60B6FC37451E5BB0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphEngine.swift; sourceTree = "<group>"; };
+		59D9076702BDBAB5B610FDB8 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MindMapApp.swift; sourceTree = "<group>"; };
+		7F26818BD2B4233A0B707255 /* MapRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapRenderer.swift; sourceTree = "<group>"; };
+		AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		B03CCB62197FEC868B6386B5 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		E295845268FF88F9231FBCBE /* MindMap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MindMap.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F7B6930ABBF77E51835B8C8D /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = Core; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CE05EAFB954B2751920309F6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3A43E3035137513A9919BE61 /* MindMapCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		67C504526B1B7A2BA3D3BC5D /* App */ = {
+			isa = PBXGroup;
+			children = (
+				4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */,
+				4C3F2F5A60B6FC37451E5BB0 /* Assets.xcassets */,
+				38E96CC769620FBAAA74B912 /* DetailPanelView.swift */,
+				23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */,
+				55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */,
+				3F632140FF2996A97BD75178 /* HelpView.swift */,
+				7F26818BD2B4233A0B707255 /* MapRenderer.swift */,
+				685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */,
+				59D9076702BDBAB5B610FDB8 /* RootView.swift */,
+				AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */,
+				B03CCB62197FEC868B6386B5 /* Theme.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		6B45107527B4AA011744E2ED /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E295845268FF88F9231FBCBE /* MindMap.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D3C598A5E8F123C33947FC16 = {
+			isa = PBXGroup;
+			children = (
+				67C504526B1B7A2BA3D3BC5D /* App */,
+				DD1BA1D3F96F860C14B3F641 /* Packages */,
+				6B45107527B4AA011744E2ED /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DD1BA1D3F96F860C14B3F641 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				F7B6930ABBF77E51835B8C8D /* Core */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F4F65F3C035C1304FAE9860A /* MindMap */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B342F6B4DA10E599A1303300 /* Build configuration list for PBXNativeTarget "MindMap" */;
+			buildPhases = (
+				155D0882104ED3EF8028B90B /* Sources */,
+				4EB3084D8A6B1185AB40BCD7 /* Resources */,
+				CE05EAFB954B2751920309F6 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MindMap;
+			packageProductDependencies = (
+				3B8EA961BD5333122169B4FE /* MindMapCore */,
+			);
+			productName = MindMap;
+			productReference = E295845268FF88F9231FBCBE /* MindMap.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B9FAD98E4A231C5DFD99483E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					F4F65F3C035C1304FAE9860A = {
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = 999BC587DAB65DD0FE1C722F /* Build configuration list for PBXProject "MindMap" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = D3C598A5E8F123C33947FC16;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				911ACE02F007C0D72F7FCBDD /* XCLocalSwiftPackageReference "Core" */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F4F65F3C035C1304FAE9860A /* MindMap */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4EB3084D8A6B1185AB40BCD7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FC05F7D57FBAA8EE5CEC6E3E /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		155D0882104ED3EF8028B90B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				36DF99A83B51CBFB9F5BBF5B /* AppModel.swift in Sources */,
+				CBE39337AA0424CBBB6C9E8A /* DetailPanelView.swift in Sources */,
+				22AC8C80F774C52D26943709 /* GraphCanvasView.swift in Sources */,
+				F515331EAD77317AECDD0107 /* GraphEngine.swift in Sources */,
+				BA82FAA875CA7528F02AE7EC /* HelpView.swift in Sources */,
+				4642136CC7D1BE404F99F1E2 /* MapRenderer.swift in Sources */,
+				6DDBDA38B940CD7080F955A6 /* MindMapApp.swift in Sources */,
+				8E3A30164D104DF1F67BC893 /* RootView.swift in Sources */,
+				919EB876A74CC18F10A3CC81 /* SidebarView.swift in Sources */,
+				458911454E0459E3FB1E8D82 /* Theme.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		512359C959E9C63B66EDD0B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MINDME;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.oliver.mindme;
+				PRODUCT_NAME = MINDME;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9ADBF3639764C93418DFF06B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MINDME;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.oliver.mindme;
+				PRODUCT_NAME = MINDME;
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		AF81B881DA1DAAD8D3CA0D8C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		EC528CC7A72143A5FA61137E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		999BC587DAB65DD0FE1C722F /* Build configuration list for PBXProject "MindMap" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF81B881DA1DAAD8D3CA0D8C /* Debug */,
+				EC528CC7A72143A5FA61137E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B342F6B4DA10E599A1303300 /* Build configuration list for PBXNativeTarget "MindMap" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				512359C959E9C63B66EDD0B2 /* Debug */,
+				9ADBF3639764C93418DFF06B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		911ACE02F007C0D72F7FCBDD /* XCLocalSwiftPackageReference "Core" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Core;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3B8EA961BD5333122169B4FE /* MindMapCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MindMapCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = B9FAD98E4A231C5DFD99483E /* Project object */;
+}

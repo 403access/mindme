@@ -1,0 +1,55 @@
+[
+  {
+    "title": "Local-first sync for a notes app",
+    "create_time": 1762000000,
+    "update_time": 1762001800,
+    "current_node": "c3",
+    "mapping": {
+      "c1": {
+        "id": "c1", "parent": null, "children": ["c2"],
+        "message": {
+          "id": "m1", "author": {"role": "user"}, "create_time": 1762000010,
+          "content": {"content_type": "text", "parts": ["I want offline notes with multi-device sync. Should I start with a CRDT or an operation log?"]}
+        }
+      },
+      "c2": {
+        "id": "c2", "parent": "c1", "children": ["c3"],
+        "message": {
+          "id": "m2", "author": {"role": "assistant"}, "create_time": 1762000050,
+          "metadata": {"model_slug": "gpt-5"},
+          "content": {"content_type": "text", "parts": ["Start with an operation log if your model is mostly blocks. CRDTs shine for concurrent rich text, but they complicate migration and schema changes."]}
+        }
+      },
+      "c3": {
+        "id": "c3", "parent": "c2",
+        "message": {
+          "id": "m3", "author": {"role": "user"}, "create_time": 1762000100,
+          "content": {"content_type": "text", "parts": ["What about conflict UX?"]}
+        }
+      }
+    }
+  },
+  {
+    "title": "Ramen broth for a six-hour weekend",
+    "create_time": 1762100000,
+    "update_time": 1762100900,
+    "current_node": "r2",
+    "mapping": {
+      "r1": {
+        "id": "r1", "parent": null, "children": ["r2"],
+        "message": {
+          "id": "rm1", "author": {"role": "user"}, "create_time": 1762100010,
+          "content": {"content_type": "text", "parts": ["Can I make tonkotsu ramen broth in six hours without a pressure cooker?"]}
+        }
+      },
+      "r2": {
+        "id": "r2", "parent": "r1",
+        "message": {
+          "id": "rm2", "author": {"role": "assistant"}, "create_time": 1762100100,
+          "metadata": {"model_slug": "gpt-5-mini"},
+          "content": {"content_type": "text", "parts": ["Yes. Use split trotters, keep a hard rolling boil, and plan on a lighter body. Finish with an immersion blender and season the bowl with tare, not the pot."]}
+        }
+      }
+    }
+  }
+]
