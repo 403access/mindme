@@ -47,10 +47,14 @@ public enum GeminiActivityImporter {
 
             let title = (record["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let time = FlexibleDate.parse(record["time"])
+            // Takeout also logs housekeeping and branch events. They either
+            // aren't prompts at all ("Cleared previous feedback") or duplicate
+            // a prompt that already has its own record ("Branched <prompt>").
+            if isEventTitle(title) { continue }
             let prompt = extractPrompt(from: record)
             guard prompt != nil || time != nil else { continue }
 
-            let urlString = (record["titleUrl"] as? String) ?? (record["url"] as? String)
+            let urlString = conversationURLString(from: record)
             let isConversationLink = urlString?.contains("gemini.google.com") == true
             let key: String
             if isConversationLink, let urlString {
@@ -70,6 +74,14 @@ public enum GeminiActivityImporter {
                     role: .user,
                     text: prompt,
                     timestamp: time
+                ))
+            }
+            if let response = extractResponse(from: record) {
+                buckets[key]?.messages.append(ChatMessage(
+                    id: "gemini:\(messageID)-reply",
+                    role: .assistant,
+                    text: response,
+                    timestamp: time?.addingTimeInterval(1)
                 ))
             }
             if !title.isEmpty && !genericTitles.contains(title.lowercased()) {
@@ -108,6 +120,51 @@ public enum GeminiActivityImporter {
         return threads
     }
 
+    /// Takeout writes the conversation link into `details` (name/url) in the
+    /// current format, and into `titleUrl` in older ones. Both must be checked,
+    /// otherwise every prompt collapses into one bucket per calendar day.
+    private static func conversationURLString(from record: [String: Any]) -> String? {
+        if let titleURL = record["titleUrl"] as? String, !titleURL.isEmpty {
+            return titleURL
+        }
+        if let url = record["url"] as? String, url.contains("gemini.google.com") {
+            return url
+        }
+        if let details = record["details"] as? [[String: Any]] {
+            for detail in details {
+                for key in ["url", "name"] {
+                    if let value = detail[key] as? String, value.contains("gemini.google.com") {
+                        return value
+                    }
+                }
+            }
+        }
+        return nil
+    }
+
+    /// The model's answer lives in `safeHtmlItem`. Takeout strips citation
+    /// chips and inline widgets, so some entries come back as `<p></p>`.
+    private static func extractResponse(from record: [String: Any]) -> String? {
+        guard let items = record["safeHtmlItem"] as? [[String: Any]] else { return nil }
+        let html = items.compactMap { $0["html"] as? String }.joined()
+        let text = TextTools.collapsed(TextTools.plainText(fromHTML: html))
+        return text.isEmpty ? nil : text
+    }
+
+    private static let eventTitlePrefixes: [String] = [
+        "cleared ",
+        "created gemini canvas",
+        "created gem",
+        "selected preferred draft",
+        "gave ",
+        "branched "
+    ]
+
+    private static func isEventTitle(_ title: String) -> Bool {
+        let lower = title.lowercased()
+        return eventTitlePrefixes.contains { lower.hasPrefix($0) }
+    }
+
     private static func extractPrompt(from record: [String: Any]) -> String? {
         if let details = record["details"] as? [[String: Any]] {
             for detail in details {
@@ -127,9 +184,11 @@ public enum GeminiActivityImporter {
             for subtitle in subtitles {
                 if let text = subtitle["name"] as? String {
                     let clean = stripPromptPrefix(text)
-                    if !clean.isEmpty && !genericTitles.contains(clean.lowercased()) {
-                        return clean
-                    }
+                    if clean.isEmpty || genericTitles.contains(clean.lowercased()) { continue }
+                    // Subtitles also describe attachments ("Attached 1 file.",
+                    // "-  image.png"); those are not prompts.
+                    if clean.hasPrefix("-") || clean.lowercased().hasPrefix("attached") { continue }
+                    return clean
                 }
             }
         }
