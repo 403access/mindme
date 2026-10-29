@@ -75,8 +75,20 @@ final class TopicTests: XCTestCase {
         )
     }
 
-    private func mixedProjectThread() -> ConversationThread {
+    private func philosophyThread() -> ConversationThread {
         thread(
+            id: "phil",
+            title: "Modal logic and the metaphysics of possible worlds",
+            exchanges: [
+                ("Can you explain Kripke semantics for modal logic? I want to understand rigid designation, possible worlds, necessity, and the quantifier rules in quantified modal logic.",
+                 "Kripke semantics interprets necessity with an accessibility relation between possible worlds. A rigid designator picks the same individual in every world, while a definite description may not. Quantified modal logic adds the Barcan formula and requires deciding whether domains vary across worlds."),
+                ("How does that connect to the analytic-synthetic distinction and epistemic justification? Is the necessary always a priori?",
+                 "Kant tied the a priori to necessity, but Kripke separates the epistemic from the metaphysical: the standard metre is contingent a priori, while water is H2O necessarily a posteriori.")
+            ]
+        )
+    }
+
+    private func mixedProjectThread() -> ConversationThread {        thread(
             id: "mixed",
             title: "Project notes",
             exchanges: [
@@ -139,8 +151,27 @@ final class TopicTests: XCTestCase {
         }
     }
 
-    func testSegmentsSplitWhenTopicShifts() {
-        let thread = mixedProjectThread()
+    func testFormalPhilosophyClassifiesIntoPhilosophySpine() {
+        let profile = TopicPipeline().analyze(philosophyThread())
+        XCTAssertEqual(
+            profile.primaryRegionID,
+            "philosophy",
+            "\(profile.regions.map { "\($0.topicID):\($0.share)" })"
+        )
+        XCTAssertTrue(
+            [
+                "philosophy/logic",
+                "philosophy/language",
+                "philosophy/metaphysics",
+                "philosophy/epistemology"
+            ].contains(profile.primaryTopicID),
+            "unexpected leaf: \(profile.primaryTopicID)"
+        )
+        XCTAssertTrue(profile.belongs(toRoot: "philosophy", threshold: 0.5))
+        XCTAssertFalse(profile.belongs(toRoot: "technology", threshold: 0.5))
+    }
+
+    func testSegmentsSplitWhenTopicShifts() {        let thread = mixedProjectThread()
         let segments = ConversationSegmenter().segment(thread)
         XCTAssertGreaterThanOrEqual(segments.count, 2)
 

@@ -155,6 +155,7 @@ struct GraphCanvasView: View {
     private var topologyTitle: String {
         if model.viewMode == .hybrid { return "HYBRID CLOUD" }
         if model.is3D { return "SPATIAL TOPOLOGY" }
+        if model.isPhilosophyLensActive { return "FORMAL PHILOSOPHY" }
         switch model.grouping {
         case .provider: return "SOURCE TOPOLOGY"
         case .topic: return "TOPIC CONSTELLATIONS"
@@ -337,6 +338,33 @@ struct GraphCanvasView: View {
             }
             .buttonStyle(.plain)
             .help("Toggle spend heat")
+
+            Button {
+                model.togglePhilosophyLens()
+                engine.requestFit()
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "function")
+                        .font(.system(size: 8.5, weight: .semibold))
+                    Text("PHIL")
+                        .font(HUDFont.micro(7))
+                        .tracking(0.4)
+                }
+                .foregroundStyle(model.isPhilosophyLensActive ? HUD.magenta : HUD.textSoft)
+                .frame(width: 46, height: 28)
+                .background(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(model.isPhilosophyLensActive ? HUD.magenta.opacity(0.12) : Color.white.opacity(0.02))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                .strokeBorder(model.isPhilosophyLensActive ? HUD.magenta.opacity(0.45) : HUD.hairline, lineWidth: 0.8)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
+            .help(model.isPhilosophyLensActive
+                  ? "Show the full constellation  ⌘6"
+                  : "Map formal philosophy by subfield  ⌘6")
 
             if !isCompactLayout {
                 HUDIconButton(systemName: "plus", help: "Zoom in") {

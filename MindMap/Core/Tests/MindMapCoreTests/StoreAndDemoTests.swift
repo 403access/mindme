@@ -178,6 +178,29 @@ final class TopicStoreTests: XCTestCase {
         try Data("{not json".utf8).write(to: store.taxonomyURL)
         XCTAssertNil(store.loadTaxonomy(), "malformed taxonomy is ignored")
     }
+
+    func testMergedTaxonomyAddsNewRegionsAndKeepsEdits() throws {
+        let store = TopicStore(directory: directory)
+        let old = TopicTaxonomy(
+            version: 4,
+            nodes: [
+                TopicNode(id: "technology", label: "Renamed Tech", seeds: ["tech"]),
+                TopicNode(id: "emerging", label: "Emerging", isFallback: true)
+            ]
+        )
+        try store.saveTaxonomy(old)
+
+        let merged = store.loadMergedTaxonomy()
+        XCTAssertEqual(merged.version, TopicTaxonomy.default.version)
+        XCTAssertEqual(merged.node(id: "technology")?.label, "Renamed Tech", "user edits survive")
+        XCTAssertNotNil(merged.node(id: "philosophy"), "new regions are folded in")
+        XCTAssertNotNil(merged.node(id: "philosophy/logic"))
+        XCTAssertEqual(store.loadTaxonomy()?.version, TopicTaxonomy.default.version, "merge is persisted")
+
+        // A current taxonomy is returned untouched.
+        let current = store.loadMergedTaxonomy()
+        XCTAssertEqual(current, merged)
+    }
 }
 
 // MARK: - Taxonomy
@@ -216,7 +239,7 @@ final class TopicTaxonomyTests: XCTestCase {
     func testDefaultTaxonomyIsWellFormed() {
         let value = TopicTaxonomy.default
         XCTAssertGreaterThanOrEqual(value.roots.count, 8)
-        XCTAssertEqual(value.version, 4)
+        XCTAssertEqual(value.version, 5)
         let ids = value.nodes.map(\.id)
         XCTAssertEqual(Set(ids).count, ids.count, "node IDs are unique")
         for node in value.nodes {
@@ -228,6 +251,18 @@ final class TopicTaxonomyTests: XCTestCase {
         XCTAssertNotNil(value.fallbackLeaf)
         XCTAssertEqual(value.fallbackLeaf?.isFallback, true)
         XCTAssertEqual(value.path(to: "technology/software").map(\.id), ["technology", "technology/software"])
+        XCTAssertEqual(
+            value.children(of: "philosophy").map(\.id),
+            [
+                "philosophy/logic",
+                "philosophy/mathematics",
+                "philosophy/language",
+                "philosophy/mind",
+                "philosophy/epistemology",
+                "philosophy/metaphysics",
+                "philosophy/science"
+            ]
+        )
         for root in value.roots where !root.isFallback {
             XCTAssertFalse(value.children(of: root.id).isEmpty, "\(root.id) should own sub-regions")
         }

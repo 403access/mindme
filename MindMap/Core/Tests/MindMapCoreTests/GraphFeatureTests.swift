@@ -288,8 +288,7 @@ final class GraphBuilderFeatureTests: XCTestCase {
         XCTAssertEqual(child.cost, 1, accuracy: 0.0001)
     }
 
-    func testRegionRootWithoutChildrenGetsGeneralSubRegion() throws {
-        let taxonomy = TopicTaxonomy(nodes: [
+    func testRegionRootWithoutChildrenGetsGeneralSubRegion() throws {        let taxonomy = TopicTaxonomy(nodes: [
             TopicNode(id: "custom", label: "Custom", seeds: ["custom"]),
             TopicNode(id: "emerging", label: "Emerging", isFallback: true)
         ])
@@ -322,6 +321,53 @@ final class GraphBuilderFeatureTests: XCTestCase {
         XCTAssertEqual(child.subtitle, "1 THREAD")
         XCTAssertEqual(graph.threadNodes.first?.groupID, child.id)
         XCTAssertFalse(graph.groupNodes.contains { $0.id == "region:emerging" })
+    }
+
+    func testTopicRootScopeFiltersBeforeThreadCapAndRespectsThreshold() throws {
+        let philosophy = thread(id: "phil", title: "Modal logic and possible worlds", updatedAt: 10)
+        let tech = thread(id: "tech", title: "SwiftUI canvas performance", updatedAt: 20)
+        let mixed = thread(id: "mixed", title: "Notes on models", updatedAt: 30)
+
+        func profile(id: String, primary: String, shares: [String: Double]) -> ThreadTopicProfile {
+            ThreadTopicProfile(
+                threadID: id,
+                contentHash: "hash-\(id)",
+                segments: [],
+                regions: shares.map {
+                    TopicShare(topicID: $0.key, label: $0.key.capitalized, share: $0.value)
+                },
+                topics: [],
+                primaryRegionID: primary,
+                primaryTopicID: "\(primary)/general",
+                analyzedAt: start
+            )
+        }
+
+        let analysis = TopicAnalysis(
+            profiles: [
+                "phil": profile(id: "phil", primary: "philosophy", shares: ["philosophy": 0.85, "research": 0.15]),
+                "tech": profile(id: "tech", primary: "technology", shares: ["technology": 0.95]),
+                "mixed": profile(id: "mixed", primary: "technology", shares: ["technology": 0.70, "philosophy": 0.30])
+            ],
+            updatedAt: start
+        )
+        let library = ThreadLibrary(threads: [philosophy, tech, mixed])
+        var filters = GraphFilters.default
+        filters.grouping = .region
+        filters.topicRoots = ["philosophy"]
+        filters.maxThreads = 2
+
+        let graph = GraphBuilder.build(library: library, filters: filters, topicAnalysis: analysis)
+        XCTAssertEqual(
+            Set(graph.threadNodes.compactMap(\.threadID)),
+            ["phil", "mixed"],
+            "technology-only threads are scoped out before the cap; the 30% mixed thread qualifies"
+        )
+        XCTAssertEqual(graph.groupNodes.map(\.id), ["region:philosophy", "region:philosophy/general"])
+
+        filters.topicShareThreshold = 0.5
+        let strict = GraphBuilder.build(library: library, filters: filters, topicAnalysis: analysis)
+        XCTAssertEqual(strict.threadNodes.compactMap(\.threadID), ["phil"], "weak shares do not qualify")
     }
 }
 

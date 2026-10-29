@@ -317,6 +317,60 @@ public extension TopicTaxonomy {
              "reise urlaub spiel hobby musik buch restaurant rezept kochen fotografie kamera film roman brettspiel"]
         , parent: "personal")
 
+        // PHILOSOPHY -------------------------------------------------------
+        // Formal/analytic philosophy. Scope is deliberately the formal core:
+        // logic, mathematics, language, mind, epistemology, metaphysics, and
+        // philosophy of science. Ethics and political philosophy are not
+        // seeded here, so those conversations stay in their existing regions.
+        add(
+            "philosophy", "Philosophy",
+            "formal philosophy, analytic philosophy, ontology, epistemology, logic",
+            ["philosophy philosophical philosopher metaphysics epistemology ontology logic logical analytic kant plato aristotle hegel wittgenstein heidegger hume descartes leibniz spinoza phenomenology dialectic rationalism empiricism skepticism consciousness qualia",
+             "philosophie philosophisch erkenntnistheorie ontologie metaphysik logik bewusstsein philosoph"]
+        )
+        add(
+            "philosophy/logic", "Logic",
+            "validity, inference, modality, paradoxes, formal systems",
+            ["logic logical syllogism propositional predicate quantifier modal inference deduction induction paradox tautology consistency soundness completeness validity formalization countermodel deontic",
+             "logik schlussfolgerung ableitung widerspruch beweis"]
+        , parent: "philosophy")
+        add(
+            "philosophy/mathematics", "Mathematics",
+            "axioms, set theory, infinity, platonism, formalism, incompleteness",
+            ["mathematics mathematical axiom axiomatic set cardinality ordinal infinity continuum platonism formalism intuitionism logicism incompleteness godel gödel hilbert frege russell peano",
+             "mathematik axiomatisch mengenlehre unendlichkeit beweis"]
+        , parent: "philosophy")
+        add(
+            "philosophy/language", "Language",
+            "meaning, reference, semantics, pragmatics, speech acts",
+            ["meaning semantics reference sense analytic synthetic priori posteriori speech pragmatics grice kripke frege russell descriptivism rigid designation proposition",
+             "bedeutung semantik referenz sprechakt"]
+        , parent: "philosophy")
+        add(
+            "philosophy/mind", "Mind",
+            "consciousness, qualia, intentionality, mental causation, personal identity",
+            ["mind consciousness qualia intentionality phenomenal mental causation dualism physicalism functionalism behaviorism chalmers nagel zombie hard problem personal identity emergence",
+             "bewusstsein geist intentionalitaet dualismus phaenomenologie"]
+        , parent: "philosophy")
+        add(
+            "philosophy/epistemology", "Epistemology",
+            "knowledge, justification, belief, skepticism, rationality",
+            ["epistemology epistemic knowledge justification belief skeptic skepticism certainty evidence gettier coherentism foundationalism reliabilism rationalism empiricism priori posteriori testimony",
+             "erkenntnistheorie wissen rechtfertigung ueberzeugung skeptizismus gewissheit"]
+        , parent: "philosophy")
+        add(
+            "philosophy/metaphysics", "Metaphysics",
+            "existence, causation, modality, identity, time, free will",
+            ["metaphysics ontology ontological existence causation causality substance property identity modality possible worlds necessity contingency determinism compatibilism universals particulars mereology endurance perdurance",
+             "metaphysik ontologie existenz kausalitaet identitaet determinismus wille"]
+        , parent: "philosophy")
+        add(
+            "philosophy/science", "Science",
+            "explanation, realism, falsification, paradigms, demarcation",
+            ["scientific falsification paradigm kuhn popper lakatos realism instrumentalism reductionism emergence laden observation demarcation underdetermination",
+             "wissenschaftstheorie erklaerung falsifikation paradigma"]
+        , parent: "philosophy")
+
         // EMERGING ---------------------------------------------------------
         add(
             "emerging", "Emerging",
@@ -331,6 +385,6 @@ public extension TopicTaxonomy {
              "sonstiges unklar allgemein"]
         , parent: "emerging", fallback: true)
 
-        return TopicTaxonomy(version: 4, nodes: nodes)
+        return TopicTaxonomy(version: 5, nodes: nodes)
     }()
 }

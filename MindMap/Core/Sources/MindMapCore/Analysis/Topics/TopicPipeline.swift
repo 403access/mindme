@@ -125,6 +125,16 @@ public struct ThreadTopicProfile: Codable, Sendable {
         self.cachedTokens = cachedTokens
         self.analyzedAt = analyzedAt
     }
+
+    /// True when `rootID` owns at least `threshold` of the thread's
+    /// classified text. Focused lenses (the formal-philosophy map) use this
+    /// to scope the graph.
+    public func belongs(toRoot rootID: String, threshold: Double = 0.25) -> Bool {
+        guard let share = regions.first(where: { $0.topicID == rootID })?.share else {
+            return false
+        }
+        return share >= threshold
+    }
 }
 
 // MARK: - Analysis

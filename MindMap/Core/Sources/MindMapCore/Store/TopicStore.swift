@@ -61,6 +61,27 @@ public final class TopicStore {
         return try? JSONDecoder().decode(TopicTaxonomy.self, from: data)
     }
 
+    /// Loads the editable taxonomy and folds in regions added by a newer app
+    /// release. Existing nodes (including user renames and reseeds) are kept;
+    /// only missing ids are appended. The merged spine is written back so the
+    /// new regions stay visible and editable.
+    public func loadMergedTaxonomy(default fallback: TopicTaxonomy = .default) -> TopicTaxonomy {
+        guard var stored = loadTaxonomy() else { return fallback }
+        guard stored.version < fallback.version else { return stored }
+
+        let known = Set(stored.nodes.map(\.id))
+        let additions = fallback.nodes.filter { !known.contains($0.id) }
+        guard !additions.isEmpty else {
+            stored.version = fallback.version
+            try? saveTaxonomy(stored)
+            return stored
+        }
+        stored.nodes.append(contentsOf: additions)
+        stored.version = fallback.version
+        try? saveTaxonomy(stored)
+        return stored
+    }
+
     public func saveTaxonomy(_ taxonomy: TopicTaxonomy) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let encoder = JSONEncoder()

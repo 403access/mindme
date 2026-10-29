@@ -358,6 +358,7 @@ struct StatusBarView: View {
     @ObservedObject var engine: GraphEngine
 
     private var statusLabel: String {
+        if model.isPhilosophyLensActive { return "PHILOSOPHY LENS" }
         switch model.viewMode {
         case .cloud: return "CLOUD LENS"
         case .hybrid: return "HYBRID LENS"
@@ -411,7 +412,7 @@ struct StatusBarView: View {
 
             Spacer()
 
-            Text("⌘F SEARCH   ⌘I IMPORT   ⌘0 FIT   ⌘4 CLOUD   ⌘5 HYBRID   ESC CLOSE")
+            Text("⌘F SEARCH   ⌘I IMPORT   ⌘0 FIT   ⌘4 CLOUD   ⌘5 HYBRID   ⌘6 PHIL   ESC CLOSE")
                 .font(HUDFont.micro(7))
                 .tracking(0.6)
                 .foregroundStyle(HUD.dim)

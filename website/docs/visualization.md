@@ -155,8 +155,8 @@ not just the whole thread:
    contains an explicit cue.
 2. `TopicClassifier` scores each segment against `TopicTaxonomy.default` — a
    curated English/German seed spine (product, technology, legal, finance,
-   design, research, operations, personal). A parent prototype includes its
-   descendants' vocabulary, so "kubernetes" still feeds Technology.
+   design, research, operations, personal, philosophy). A parent prototype
+   includes its descendants' vocabulary, so "kubernetes" still feeds Technology.
 3. `TopicPipeline.viterbi` smooths the sequence (stay free, sibling cheap,
    cross-domain expensive).
 4. Rollup weights segments by prompt length + 25% of answer length, producing a
@@ -170,7 +170,17 @@ not just the whole thread:
 
 Low-confidence text lands in `emerging` instead of a forced region. The
 taxonomy is plain data; bump `TopicTaxonomy.default.version` when seeds change
-to invalidate cached profiles.
+to invalidate cached profiles. New regions are merged into an existing
+`taxonomy.json` on launch without overwriting user renames or reseeds.
+
+**Focused topic lenses** narrow the graph to a taxonomy root before the thread
+cap is applied. `GraphFilters.topicRoots` + `topicShareThreshold` are applied in
+`GraphBuilder.build` using the same cached `TopicAnalysis` that region grouping
+uses, and threads are placed by their strongest leaf inside the lens rather than
+their overall primary region. The formal-philosophy button (`⌘6`) is the built-in
+preset: it sets region grouping, scopes to `philosophy` at a 0.5 share, and
+groups Logic, Mathematics, Language, Mind, Epistemology, Metaphysics, and
+Science.
 
 **Spend heat** is an opt-in renderer overlay (`showSpend`, off by default).
 OpenCode's importer copies session totals from `session_v2` and per-message
@@ -547,6 +557,7 @@ Implemented in `GraphCanvasView.swift` (gestures/overlays) and `GraphEngine`
 | ⌘3 / 2D–3D control | crossfade modes |
 | ⌘4 / CLOUD control | switch to the free word cloud |
 | ⌘5 / HYBRID control | switch to the constellation-anchored word cloud |
+| ⌘6 / PHILOSOPHY button | isolate formal philosophy and group its subfields |
 | Click a word (free cloud) | select its tag node and isolate its threads |
 | Click a word (hybrid) | select its tag node; falls back to normal node hit testing |
 | Type in search | highlight matching threads and their hub/tag paths in place |

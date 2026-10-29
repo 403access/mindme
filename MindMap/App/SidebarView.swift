@@ -214,7 +214,63 @@ struct SidebarView: View {
                     .fill(Color.white.opacity(0.025))
                     .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(HUD.hairline, lineWidth: 0.8))
             )
+
+            philosophyButton
         }
+    }
+
+    /// Dedicated one-click lens for the formal-philosophy spine. It isolates
+    /// philosophy conversations and groups them by subfield (Logic, Mind,
+    /// Language, Mathematics, Epistemology, Metaphysics, Science).
+    private var philosophyButton: some View {
+        let active = model.isPhilosophyLensActive
+        let count = model.philosophyThreadCount
+        let tint = active ? HUD.magenta : HUD.accent
+
+        return Button {
+            model.togglePhilosophyLens()
+            model.engine.requestFit()
+        } label: {
+            HStack(spacing: 9) {
+                ZStack {
+                    Circle()
+                        .fill(tint.opacity(active ? 0.18 : 0.06))
+                        .frame(width: 20, height: 20)
+                    Image(systemName: "function")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(active ? HUD.magenta : HUD.accent.opacity(0.75))
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("PHILOSOPHY")
+                        .font(HUDFont.micro(8))
+                        .tracking(1.2)
+                        .foregroundStyle(active ? HUD.text : HUD.textSoft)
+                    Text(active ? "FORMAL PHILOSOPHY MAP · ON" : "ISOLATE LOGIC · MIND · LANGUAGE")
+                        .font(HUDFont.micro(6.4))
+                        .tracking(0.6)
+                        .foregroundStyle(active ? HUD.magenta.opacity(0.85) : HUD.dim)
+                }
+                Spacer(minLength: 4)
+                if count > 0 {
+                    Text("\(count)")
+                        .font(HUDFont.micro(8))
+                        .foregroundStyle(active ? HUD.magenta : HUD.muted)
+                }
+            }
+            .padding(.horizontal, 9)
+            .frame(height: 38)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(active ? HUD.magenta.opacity(0.07) : Color.white.opacity(0.015))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .strokeBorder(active ? HUD.magenta.opacity(0.45) : HUD.hairline, lineWidth: 0.8)
+                    )
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(active ? "Show the full constellation  ⌘6" : "Map formal philosophy by subfield  ⌘6")
     }
 
     // MARK: - Time

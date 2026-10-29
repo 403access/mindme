@@ -11,8 +11,23 @@ public enum GraphBuilder {
         now: Date = Date()
     ) -> MindMapGraph {
         let providerFiltered = library.threads.filter { filters.matches($0) }
+
+        // Focused lenses scope the library by taxonomy root before the thread
+        // cap is applied, so the map shows the strongest matches. The region
+        // pass below reuses this analysis instead of running the pipeline twice.
+        var scopedAnalysis: TopicAnalysis?
+        var scoped = providerFiltered
+        if let roots = filters.topicRoots, !roots.isEmpty {
+            let analysis = regionAnalysis(for: providerFiltered, provided: topicAnalysis)
+            scopedAnalysis = analysis
+            scoped = providerFiltered.filter { thread in
+                guard let profile = analysis.profiles[thread.id] else { return false }
+                return roots.contains { profile.belongs(toRoot: $0, threshold: filters.topicShareThreshold) }
+            }
+        }
+
         let limited = Array(
-            providerFiltered
+            scoped
                 .sorted { $0.updatedAt > $1.updatedAt }
                 .prefix(max(0, filters.maxThreads))
         )
@@ -91,7 +106,7 @@ public enum GraphBuilder {
             }
 
         case .region:
-            let analysis = regionAnalysis(for: limited, provided: topicAnalysis)
+            let analysis = regionAnalysis(for: limited, provided: scopedAnalysis ?? topicAnalysis)
             let roots = analysis.taxonomy.roots
             var threadsByRoot: [String: [String]] = [:]
             var threadsByLeaf: [String: [String]] = [:]
@@ -100,21 +115,48 @@ public enum GraphBuilder {
 
             for thread in limited {
                 let profile = analysis.profiles[thread.id]
+                let taxonomy = analysis.taxonomy
+                func rootID(for leafID: String) -> String {
+                    taxonomy.node(id: leafID)?.parentID ?? leafID
+                }
+
+                // A focused lens (for example philosophy) must place a thread
+                // inside the lens even when the conversation's overall primary
+                // topic belongs to a different region.
+                let scopedRoots = filters.topicRoots
+                let candidates = (profile?.topics ?? []).filter { topic in
+                    guard let scopedRoots else { return true }
+                    return scopedRoots.contains(rootID(for: topic.topicID))
+                }
+
                 // Spend-aware placement: when a conversation's parts have
                 // different costs, park it where most of the money went.
                 // Without costs this is the usual mass-primary topic.
-                let costliest = profile?.topics
+                let costliest = candidates
                     .filter { $0.cost > 0 }
                     .max { a, b in
                         if abs(a.cost - b.cost) > 0.000001 { return a.cost < b.cost }
                         return a.share < b.share
                     }
-                let leafID = costliest?.topicID
+                let strongest = candidates.max { $0.share < $1.share }
+
+                var leafID = costliest?.topicID
+                    ?? strongest?.topicID
                     ?? profile?.primaryTopicID
                     ?? "emerging/misc"
-                let rootID = analysis.taxonomy.node(id: leafID)?.parentID
+                var rootID = taxonomy.node(id: leafID)?.parentID
                     ?? profile?.primaryRegionID
                     ?? "emerging"
+
+                // The lens may admit a thread whose leaf detail was sparsified
+                // away. Park it under the admitted root's General child rather
+                // than letting it escape into its overall primary region.
+                if let scopedRoots, !scopedRoots.contains(rootID),
+                   let region = profile?.regions.first(where: { scopedRoots.contains($0.topicID) }) {
+                    rootID = region.topicID
+                    leafID = "\(rootID)/general"
+                }
+
                 threadsByLeaf[leafID, default: []].append(thread.id)
                 threadsByRoot[rootID, default: []].append(thread.id)
 

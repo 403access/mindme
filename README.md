@@ -14,6 +14,7 @@ The same constellation in spatial mode:
 
 - **Loads real conversations** — ChatGPT `conversations.json`, Google Takeout Gemini Apps activity, Claude `conversations.json`, HTML Takeout pages (best effort), the local OpenCode SQLite library, and a documented generic schema.
 - **Groups the map** by provider, shared topic keyword, time period, or hierarchical **region**.
+- **Maps formal philosophy with one button** — the **PHILOSOPHY** lens (or **⌘6**) isolates conversations where formal philosophy dominates and groups them into Logic, Mathematics, Language, Mind, Epistemology, Metaphysics, and Science. Press it again to return to the full map.
 - **Classifies conversations and their parts** — each thread is segmented where the topic actually changes, then scored against an editable region spine (product, technology, legal, finance, design, research, operations, personal) with sub-regions underneath. A mixed project thread can be 60% technology and 40% legal; the inspector shows every segment.
 - **Shows where the money went** — an opt-in **COST** overlay heats regions and sub-regions by provider-reported spend, draws a gauge for each hub's share of the most expensive topic, and puts dollar totals on the map. Built for OpenCode archives; other providers simply have no cost data.
 - **Searches live** — typing highlights matching conversations and their paths in place while the map, cloud, and hybrid lenses stay intact; press **Return** (or **ISOLATE**) to filter the map down to the hits and **SHOW ALL** to bring the full constellation back. Source and time-window filters still rebuild instantly, with a live thread index.
@@ -154,9 +155,11 @@ The synthetic demo archive remains available at any time via **File → Load Dem
 
 Choose **REGION** in the Lens section (or *Map → Group By → Region*). The map becomes two levels deep:
 
-- an inner hub per **region** — Product, Technology, Legal, Finance, Design, Research, Operations, Personal, Emerging
+- an inner hub per **region** — Product, Technology, Legal, Finance, Design, Research, Operations, Personal, Philosophy, Emerging
 - a ring of **sub-region** hubs inside it — e.g. Technology splits into Software, Architecture, and AI
 - conversations fan out from the sub-region they spend most of their words in
+
+Philosophy splits into Logic, Mathematics, Language, Mind, Epistemology, Metaphysics, and Science. The **PHILOSOPHY** button (⌘6, also PHIL on the map) is a shortcut that switches to region grouping and isolates the threads where philosophy owns at least half of the classified text, so a stray philosophical paragraph in an engineering thread does not pull it in. Existing `taxonomy.json` files are merged with new regions on launch; your renames and edits are kept.
 
 The pipeline runs entirely on-device:
 
@@ -196,6 +199,7 @@ Interaction:
 | **⌘3** or the **2D/3D** map control | Toggle the spatial perspective |
 | **⌘4** or the **CLOUD** control | Switch to the free word cloud |
 | **⌘5** or the **HYBRID** control | Show the word cloud inside the constellation structure |
+| **⌘6** or the **PHILOSOPHY** button | Isolate formal philosophy and map its subfields; press again to exit |
 | Drag (3D) | Orbit the camera around the root |
 | **Shift**-drag (3D) | Pan the camera target across the scene |
 | Pinch / +− (3D) | Move the camera closer or farther |
@@ -211,6 +215,7 @@ Interaction:
 | **⌘3** | Toggle 3D perspective |
 | **⌘4** | Toggle the free word cloud |
 | **⌘5** | Toggle the hybrid cloud |
+| **⌘6** | Toggle the formal-philosophy lens |
 | **⌘R** | Reload the local library |
 | **Esc** | Deselect / close the inspector |
 

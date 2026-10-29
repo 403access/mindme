@@ -133,6 +133,11 @@ struct AppCommands: Commands {
                 set: { model.viewMode = $0 ? .hybrid : .map }
             ))
             .keyboardShortcut("5", modifiers: .command)
+            Toggle("Philosophy Lens", isOn: Binding(
+                get: { model.isPhilosophyLensActive },
+                set: { _ in model.togglePhilosophyLens() }
+            ))
+            .keyboardShortcut("6", modifiers: .command)
             Toggle("Show Tags", isOn: $model.showTags)
             Toggle("Show Labels", isOn: $model.showLabels)
             Toggle("Show Node Names", isOn: $model.showNodeNames)

@@ -38,6 +38,14 @@ public struct GraphFilters: Equatable, Sendable {
     public var grouping: GroupingMode
     public var includeTags: Bool
     public var maxThreads: Int
+    /// When set, only conversations classified under one of these taxonomy
+    /// roots are kept. `nil` means no topic scoping. Used by focused lenses
+    /// (for example the formal-philosophy map).
+    public var topicRoots: Set<String>?
+    /// A thread counts as scoped when one of the requested roots owns at least
+    /// this share of its classified text, so a stray philosophical paragraph
+    /// does not pull an entire engineering thread into the lens.
+    public var topicShareThreshold: Double
 
     public init(
         providers: Set<Provider> = Set(Provider.allCases),
@@ -45,7 +53,9 @@ public struct GraphFilters: Equatable, Sendable {
         since: Date? = nil,
         grouping: GroupingMode = .provider,
         includeTags: Bool = true,
-        maxThreads: Int = 420
+        maxThreads: Int = 420,
+        topicRoots: Set<String>? = nil,
+        topicShareThreshold: Double = 0.25
     ) {
         self.providers = providers
         self.searchText = searchText
@@ -53,6 +63,8 @@ public struct GraphFilters: Equatable, Sendable {
         self.grouping = grouping
         self.includeTags = includeTags
         self.maxThreads = maxThreads
+        self.topicRoots = topicRoots
+        self.topicShareThreshold = topicShareThreshold
     }
 
     public static let `default` = GraphFilters()

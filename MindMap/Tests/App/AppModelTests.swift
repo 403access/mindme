@@ -135,8 +135,44 @@ final class AppModelTests: XCTestCase {
         XCTAssertFalse(model.graph.groupNodes.isEmpty)
     }
 
-    func testTimeWindowFiltersTheGraph() throws {
-        let old = Date().addingTimeInterval(-200 * 86_400)
+    func testPhilosophyLensScopeToggleAndGroupingReset() throws {
+        let threads = [
+            thread(
+                id: "phil",
+                title: "Modal logic and possible worlds",
+                text: "Kripke semantics for modal logic, rigid designation, necessity, quantifier rules, quantified modal logic, metaphysics of possible worlds, analytic synthetic and epistemic justification."
+            ),
+            thread(
+                id: "tech",
+                title: "SwiftUI canvas performance",
+                text: "swiftui canvas rendering performance tuning for the desktop app"
+            )
+        ]
+        let (model, directory) = try makeModel(threads: threads)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        XCTAssertFalse(model.isPhilosophyLensActive)
+        XCTAssertEqual(model.philosophyThreadCount, 1)
+
+        model.togglePhilosophyLens()
+        XCTAssertTrue(model.isPhilosophyLensActive)
+        XCTAssertEqual(model.focusedRegionID, AppModel.philosophyRegionID)
+        XCTAssertEqual(model.grouping, .region)
+        XCTAssertEqual(model.graph.threadNodes.compactMap(\.threadID), ["phil"])
+        XCTAssertTrue(model.graph.groupNodes.contains { $0.id == "region:philosophy" })
+
+        model.togglePhilosophyLens()
+        XCTAssertFalse(model.isPhilosophyLensActive)
+        XCTAssertNil(model.focusedRegionID)
+        XCTAssertEqual(model.graph.stats.threadCount, 2, "leaving the lens restores the full map")
+
+        model.togglePhilosophyLens()
+        model.grouping = .provider
+        XCTAssertFalse(model.isPhilosophyLensActive, "changing grouping clears the focus")
+        XCTAssertEqual(model.graph.stats.threadCount, 2)
+    }
+
+    func testTimeWindowFiltersTheGraph() throws {        let old = Date().addingTimeInterval(-200 * 86_400)
         let (model, directory) = try makeModel(threads: threeThreads(updatedAt: old))
         defer { try? FileManager.default.removeItem(at: directory) }
 

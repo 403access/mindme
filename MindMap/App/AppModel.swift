@@ -114,10 +114,17 @@ final class AppModel: ObservableObject {
     }
     @Published var grouping: GroupingMode = .provider {
         didSet {
+            if grouping != .region, focusedRegionID != nil {
+                focusedRegionID = nil
+            }
             if grouping == .region { refreshTopicAnalysis() }
-            rebuild(refit: true)
+            if !suppressRebuild { rebuild(refit: true) }
         }
     }
+    /// Root region currently isolated by a focused lens. The philosophy
+    /// button sets this to `philosophyRegionID`; changing away from region
+    /// grouping clears it. `nil` means the full library.
+    @Published private(set) var focusedRegionID: String?
     @Published var timeWindow: TimeWindow = .all {
         didSet { rebuild() }
     }
@@ -183,6 +190,10 @@ final class AppModel: ObservableObject {
     private let topicStore: TopicStore
     private var searchTask: Task<Void, Never>?
     private var toastTask: Task<Void, Never>?
+    /// Lets a lens preset change grouping and focus in one rebuild.
+    private var suppressRebuild = false
+
+    static let philosophyRegionID = "philosophy"
 
     init(
         store: ThreadStore = ThreadStore(),
@@ -281,7 +292,9 @@ final class AppModel: ObservableObject {
             since: timeWindow.since,
             grouping: grouping,
             includeTags: showTags,
-            maxThreads: 420
+            maxThreads: 420,
+            topicRoots: focusedRegionID.map { [$0] },
+            topicShareThreshold: 0.5
         )
     }
 
@@ -293,7 +306,9 @@ final class AppModel: ObservableObject {
             since: timeWindow.since,
             grouping: grouping,
             includeTags: showTags,
-            maxThreads: 420
+            maxThreads: 420,
+            topicRoots: focusedRegionID.map { [$0] },
+            topicShareThreshold: 0.5
         )
     }
 
@@ -321,7 +336,7 @@ final class AppModel: ObservableObject {
     /// rebuilds the graph unless isolation is on.
     private func updateSearchState() {
         let base = baseFilters
-        let visible = library.threads.filter { base.matches($0) }
+        let visible = library.threads.filter { base.matches($0) && matchesFocusedRegion($0) }
 
         guard !normalizedSearchQuery.isEmpty else {
             searchMatchNodeIDs = []
@@ -337,7 +352,8 @@ final class AppModel: ObservableObject {
             since: timeWindow.since,
             grouping: grouping,
             includeTags: showTags,
-            maxThreads: base.maxThreads
+            maxThreads: base.maxThreads,
+            topicRoots: base.topicRoots
         )
         let matches = visible
             .filter { search.matches($0) }
@@ -361,6 +377,70 @@ final class AppModel: ObservableObject {
         searchMatchNodeIDs = matchNodeIDs
         searchHighlightNodeIDs = highlight
         searchWordIDs = words
+    }
+
+    // MARK: - Focused lenses
+
+    var isPhilosophyLensActive: Bool {
+        focusedRegionID == Self.philosophyRegionID
+    }
+
+    /// Threads the formal-philosophy lens would show under the current
+    /// source/window filters, using the same threshold as the graph so the
+    /// button count and the map agree.
+    var philosophyThreadCount: Int {
+        let base = baseFilters
+        return library.threads.filter {
+            base.matches($0) && matchesFocusedRegion($0, rootID: Self.philosophyRegionID)
+        }.count
+    }
+
+    private func matchesFocusedRegion(_ thread: ConversationThread, rootID: String? = nil) -> Bool {
+        guard let focus = rootID ?? focusedRegionID else { return true }
+        guard let profile = topicAnalysis.profiles[thread.id] else { return false }
+        return profile.belongs(toRoot: focus, threshold: filters.topicShareThreshold)
+    }
+
+    /// One-click formal-philosophy map: region grouping scoped to the
+    /// philosophy spine. Clicking again returns to the unscoped map.
+    func togglePhilosophyLens() {
+        if isPhilosophyLensActive {
+            focusedRegionID = nil
+            rebuild(refit: true)
+            showToast(
+                "Philosophy lens off",
+                detail: "Showing the full constellation again.",
+                kind: .info
+            )
+            return
+        }
+
+        let previous = grouping
+        suppressRebuild = true
+        grouping = .region
+        focusedRegionID = Self.philosophyRegionID
+        suppressRebuild = false
+        refreshTopicAnalysis()
+        rebuild(refit: true)
+
+        let count = philosophyThreadCount
+        guard count > 0 else {
+            showToast(
+                "No philosophy threads classified yet",
+                detail: "Import conversations about logic, mind, language, or metaphysics, then reclassify topics.",
+                kind: .info
+            )
+            return
+        }
+        let subfields = Set(graph.groupNodes.filter { $0.parentID == "region:\(Self.philosophyRegionID)" }.map(\.label))
+        var detail = "\(count) \(count == 1 ? "thread" : "threads")"
+        if !subfields.isEmpty {
+            detail += " · \(subfields.count) \(subfields.count == 1 ? "subfield" : "subfields")"
+        }
+        if previous != .region {
+            detail += " · click again to exit"
+        }
+        showToast("Formal philosophy map", detail: detail, kind: .success)
     }
 
     // MARK: - Selection
@@ -457,6 +537,7 @@ final class AppModel: ObservableObject {
 
     func resetFilters() {
         providers = Set(Provider.allCases)
+        focusedRegionID = nil
         grouping = .provider
         timeWindow = .all
         searchIsolation = false
@@ -748,7 +829,7 @@ final class AppModel: ObservableObject {
         let cached = force ? nil : topicAnalysis
         // Reloaded each time so edits to taxonomy.json are picked up by the
         // Reclassify Topics command without a relaunch.
-        let taxonomy = topicStore.loadTaxonomy() ?? .default
+        let taxonomy = topicStore.loadMergedTaxonomy()
         let analysis = TopicPipeline(taxonomy: taxonomy).analyze(library, cached: cached)
         guard force
                 || analysis.libraryHash != topicAnalysis.libraryHash
