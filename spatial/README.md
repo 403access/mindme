@@ -1,10 +1,10 @@
 # MINDME Spatial
 
 MINDME for **Meta Quest 3**. This is a WebXR build of the constellation: the same library,
-graph model, keyword tags, inspectable transcripts, and spend overlay as the macOS app,
-rendered in the headset's room-scale space.
+graph model, keyword tags, inspectable transcripts, and spend overlay as the Mac and iPhone
+apps, rendered in the headset's room-scale space.
 
-It is a separate, static web app — the SwiftUI app is untouched. Open it in the
+It is a separate, static web app — the SwiftUI apps are untouched. Open it in the
 **Meta Quest Browser**, load an exported `library.json`, and press **ENTER VR**.
 
 ```
@@ -110,9 +110,10 @@ plain `http://` except for `localhost`.
 
 ## Loading your library
 
-1. In the macOS app: **File → Export Library for Quest…** (⌘E). This writes a
+1. In the MINDME app: on macOS use **File → Export Library for Quest…** (⌘E); on iPhone use
+   the top-bar overflow menu → **Export Library for Quest…** and save to Files. This writes a
    `mindme-library.json` with the current library, including OpenCode cost and token data.
-2. Get that file onto the headset. Three ways, in order of convenience:
+2. Get that file onto the headset. Several ways, in order of convenience:
 
    **Serve it locally (no transfer, recommended for the USB workflow).** Put the export
    beside the app and open it through the URL loader:
@@ -134,6 +135,9 @@ plain `http://` except for `localhost`.
    ```
 
    Then press **LOAD JSON** in the headset and pick it from Downloads.
+
+   **From iPhone.** Save the export to Files, then move it to the Mac or upload it to a cloud
+   service the Quest Browser can reach and use **LOAD JSON**.
 
    **Cloud storage.** Any file the Quest Browser can reach (Drive, Dropbox, email, a private
    URL) works with **LOAD JSON**, or serve it with `?library=<url>`.
@@ -185,16 +189,16 @@ immersive session opens the field guide automatically; dismiss it with **RETURN 
 ## Lenses and filters
 
 - **PROVIDER**, **TOPIC**, and **ERA** groupings (topic clusters use the same deterministic
-  keyword logic as the macOS app).
+  keyword logic as the Mac and iPhone apps).
 - Provider toggles, time windows (all / 12 months / 90 days / 30 days), and live search on the
   flat page.
 - Tags, labels, motion, and **COST** spend heat (only for libraries with provider-reported cost).
 - Selecting a node lights its path, dims the rest, and opens a transcript or member list.
-- The demo and every imported library cap at 420 visible conversations, like the Mac app.
+- The demo and every imported library cap at 420 visible conversations, like the Mac and iPhone apps.
 
 **Not in this build:** the region taxonomy lens (it needs the Swift topic pipeline and cached
 taxonomy), the free/hybrid word-cloud lenses, raw ChatGPT/Gemini/Claude import, and topic
-reclassification. Export from the macOS app after importing and analyzing there.
+reclassification. Export from the Mac or iPhone app after importing and analyzing there.
 
 ## Performance notes
 

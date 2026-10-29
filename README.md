@@ -63,13 +63,14 @@ make test-all      # both
 
 The headset build is a WebXR app in [`spatial/`](spatial). It opens in the Meta Quest Browser,
 reads a normalized library export, and renders the constellation in room-scale space with a
-world-space control board and inspector. The SwiftUI app is unchanged and remains the place to
-import and analyze conversations.
+world-space control board and inspector. Import and analysis happen in the Mac or iPhone app;
+the headset build is the viewer for the normalized library.
 
 ```bash
 cd MindMap
-make run                       # 1. import exports and analyze them on the Mac
+make run                       # 1. import exports and analyze them (Mac)
 # File → Export Library for Quest… (⌘E)   → mindme-library.json
+# On iPhone: ••• → Export Library for Quest… → save to Files
 
 cd ../spatial
 npm install
@@ -83,7 +84,7 @@ workflow. Controls, deployment options, and the module map are in [`spatial/READ
 
 The headset build supports provider/topic/era groupings, provider and time filters, tags, the
 spend overlay, focus paths, and transcript inspection. Region grouping, the word-cloud lenses,
-raw export import, and topic reclassification stay on the Mac.
+raw export import, and topic reclassification stay in the Mac and iPhone apps.
 
 No headset handy? `cd spatial && npm run dev:sim` runs the actual immersive session in desktop
 Chromium (or a VM) through Meta's IWER simulator, including simulated Quest controllers and a
@@ -112,7 +113,7 @@ settings.
 | ChatGPT | Settings → Data controls → Export data | `conversations.json` |
 | Gemini | Google Takeout → My Activity → Gemini Apps | `My Activity.json` (or the Takeout folder) |
 | Claude | Settings → Privacy → Export data | `conversations.json` |
-| OpenCode | Already on this Mac | File → Import OpenCode Sessions (⌘⇧O), or drop `opencode.db` |
+| OpenCode | Already on this Mac (or pick the `.db` on iPhone) | File → Import OpenCode Sessions (⌘⇧O), or drop `opencode.db` |
 | Any tool | MINDME generic schema | a `.json` file with a `threads` array |
 
 You can drag files or whole folders onto the window, or press **⌘I**. The importer groups Gemini activity prompts by their conversation URL (falling back to a per-day bucket), reconstructs ChatGPT's active branch from `current_node` → parents, and skips hidden/system nodes.
@@ -264,7 +265,7 @@ spatial/                     WebXR viewer for Meta Quest 3 (three.js + Vite)
 - Keyword extraction is intentionally lightweight (TF-IDF-ish, English + German stopwords). Topic classification uses deterministic hashed bag-of-words embeddings plus seed vocabularies — explainable and offline, not a neural sentence encoder. The `TopicEmbeddingProvider` protocol is the seam for dropping in a bundled CoreML MiniLM later.
 - Topic analysis runs once per archive change and caches every thread profile by content hash. A 400-thread library takes a couple of seconds on first run; later launches reuse `topics.json`, and only new or edited conversations are reclassified.
 - The Mac app is ad-hoc signed for local use. For distribution you will want your own Developer ID and notarization. The iOS target uses automatic signing and needs a development team selected for on-device builds; simulator builds need no signing.
-- The Quest viewer accepts the normalized MINDME library JSON, not raw provider exports. Import on the Mac, then use **File → Export Library for Quest…**. It needs a secure context: `localhost` over `adb reverse`, or HTTPS hosting.
+- The Quest viewer accepts the normalized MINDME library JSON, not raw provider exports. Import in the Mac or iPhone app, then use **File → Export Library for Quest…** (macOS) or **••• → Export Library for Quest…** (iPhone). It needs a secure context: `localhost` over `adb reverse`, or HTTPS hosting.
 
 ## iPhone
 

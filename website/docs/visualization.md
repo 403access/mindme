@@ -16,6 +16,9 @@ force-directed graph. Two opt-in cloud lenses expose the same filtered tags:
 a free **word cloud** (⌘4) and a **hybrid cloud** (⌘5) that keeps the
 constellation structure and anchors sized words to their tag nodes.
 
+The keyboard shortcuts below refer to macOS. On iPhone the same lenses and camera controls are
+on the map, and tap replaces click/hover for selection and inspection.
+
 ```
 KeywordExtractor ──► tag nodes, topic hubs, inspector chips
                   ├► WordCloudLayout (⌘4, free spiral)

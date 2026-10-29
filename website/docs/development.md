@@ -106,9 +106,11 @@ npm run serve     # preview the production build
 
 ```
 MindMap/
-├── App/                     SwiftUI app (macOS)
-│   ├── MindMapApp.swift     app lifecycle, menus
+├── App/                     SwiftUI app (macOS + iPhone)
+│   ├── MindMapApp.swift     app lifecycle, menus (macOS) / mobile entry (iOS)
 │   ├── AppModel.swift       library, filters, import orchestration
+│   ├── MobileRootView.swift iPhone shell: top bar, sheets, document pickers
+│   ├── Platform.swift       AppKit/UIKit shims, export document, cursor + active state
 │   ├── GraphEngine.swift    simulation clock, 2D/3D cameras, hit testing, render throttling
 │   ├── Perspective.swift    perspective camera, projection, 3D fit
 │   ├── MapRenderer.swift    Canvas renderer (2D/3D nodes, edges, labels, depth)
@@ -127,8 +129,9 @@ MindMap/
     └── Demo/                deterministic demo archive
 ```
 
-The core package is platform-neutral (Foundation plus its own `Vec2`/`Vec3`), so it can be
-linked unchanged from a future iOS target. The rendering layer is SwiftUI `Canvas`.
+The core package is platform-neutral (Foundation plus its own `Vec2`/`Vec3`), so the macOS and
+iPhone targets link it unchanged. The rendering layer is SwiftUI `Canvas`; the mobile shell adds
+touch-first sheets and the Files import/export pickers around the same views.
 
 ```
 spatial/                     WebXR viewer (three.js + Vite)
@@ -193,9 +196,10 @@ collisions against the live projection each frame, keeping words tethered to the
 
 ## Privacy
 
-There is no networking code in the app. Export files and the OpenCode database are parsed
-locally and normalized into a JSON library in Application Support. Use *File → Reveal Library
-in Finder* to inspect or delete it.
+There is no networking code in either app. Export files and the OpenCode database are parsed
+locally and normalized into a JSON library in Application Support. On macOS, use *File → Reveal
+Library in Finder* to inspect or delete it; on iPhone the library stays inside the app container
+and **Copy library path** in Help shows its location.
 
 ## Limitations
 
@@ -208,12 +212,20 @@ in Finder* to inspect or delete it.
   `GraphFilters.maxThreads`); use filters for very large archives.
 - Keyword extraction is intentionally lightweight (TF-IDF-ish, English + German stopwords).
   It is explainable and instant, not an embedding model.
-- The app is ad-hoc signed for local use. For distribution you will want your own Developer ID
-  and notarization.
+- The Mac app is ad-hoc signed for local use. For distribution you will want your own Developer
+  ID and notarization. The iPhone target uses automatic signing and needs a development team for
+  device builds; simulator builds need no signing.
 
-## iOS
+## Mobile notes
 
-`MindMapCore` is already platform-neutral (Foundation + its own `Vec2`, iOS 17 minimum). The
-rendering layer is SwiftUI `Canvas`, so an iOS target mainly needs a compact sidebar/inspector
-presentation and touch gestures (the `MagnifyGesture` and tap handling already work on iOS 17).
-The project is structured so the core can be linked unchanged from a future iOS app target.
+The iPhone target is intentionally phone-first: the map fills the screen, filters and the
+inspector are sheets, and the top bar exposes import plus an overflow menu for reload, demo,
+export, help, and reset. The system Files picker handles JSON, HTML, and SQLite inputs; the
+export uses the share sheet.
+
+- OpenCode's local database scan is Mac-only because iOS is sandboxed. Pick an `opencode.db`
+  manually to import it on iPhone.
+- The iPhone app uses the same `MindMapCore` parsers, topic pipeline, and renderers as the Mac
+  app, so normalized libraries and Quest exports are interchangeable.
+- iPad layout is not a target yet (`TARGETED_DEVICE_FAMILY = 1`); iPad runs the iPhone app in
+  compatibility mode.

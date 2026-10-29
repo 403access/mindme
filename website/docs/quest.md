@@ -7,19 +7,20 @@ description: Run MINDME as a WebXR constellation in the Meta Quest Browser.
 
 MINDME ships a **WebXR** build for the Meta Quest 3. It is a static web app in
 [`spatial/`](https://github.com/403access/mindme/tree/main/spatial) that opens in the Quest
-Browser and enters an immersive session. It reads the same library export as the macOS app and
+Browser and enters an immersive session. It reads the same library export as the MINDME apps and
 renders the constellation in room-scale space, with world-space control panels and an inspector.
 
-The macOS app is unchanged and remains the place to import and analyze conversations. The
-headset build is a viewer for a normalized library: export it, load it, and walk around it.
+Import and analysis happen on your Mac or iPhone. The headset build is a viewer for a normalized
+library: export it, load it, and walk around it.
 
 ## Quick start
 
-### 1. Export from the Mac
+### 1. Export from MINDME
 
-In the macOS app, choose **File → Export Library for Quest…** (⌘E). You get a
-`mindme-library.json` containing every thread, message, tag-ready text, and any OpenCode cost
-and token data. Nothing is uploaded.
+On macOS, choose **File → Export Library for Quest…** (⌘E). On iPhone, open the top-bar overflow
+menu and choose **Export Library for Quest…**, then save the file to Files or iCloud Drive. You
+get a `mindme-library.json` containing every thread, message, tag-ready text, and any OpenCode
+cost and token data. Nothing is uploaded.
 
 ### 2. Get the app into the headset
 
@@ -45,12 +46,14 @@ npm run build -- --base=/mindme/quest/
 
 ### 3. Get the file to the headset
 
-The export lives on the Mac, so choose one of:
+The export lives on your Mac or iPhone, so choose one of:
 
 - **Serve it from the dev server (recommended for USB).** Copy the export into
   `spatial/public/library.json` and open `http://localhost:5173/?library=./library.json` in the
   headset. The file is read from your Mac over the ADB tunnel and never uploaded. Keep it out
   of published builds (it is git-ignored).
+- **iPhone export.** Save the export to Files, then move it to the Mac or share it to a cloud
+  service the Quest Browser can reach; open it there with **LOAD JSON**.
 - **`adb push`** the file to `/sdcard/Download/`, then press **LOAD JSON** in the headset and
   pick it.
 - **Cloud storage** or any reachable URL, using **LOAD JSON** or `?library=<url>`.
@@ -70,7 +73,7 @@ anything.
 ## What you can do in the headset
 
 - **Provider, topic, and era constellations** — the same deterministic graph and keyword tags
-  as the desktop app. Topic clustering and tag selection use the shared algorithms.
+  as the MINDME apps. Topic clustering and tag selection use the shared algorithms.
 - **Point and select** with a controller ray or a hand pinch. Hubs, conversations, and tags all
   respond; the selected path lights up and everything else dims.
 - **Inspect in space** — the inspector opens beside the map with provider, model, dates,
@@ -120,13 +123,13 @@ The headset build deliberately does not include:
 - **Region grouping**, which depends on the Swift topic pipeline, taxonomy file, and per-thread
   profile cache.
 - **Word cloud and hybrid cloud lenses** and the 2D map.
-- **Raw export import** (ChatGPT/Gemini/Claude/OpenCode source files). Import on the Mac first,
-  then export the normalized library.
+- **Raw export import** (ChatGPT/Gemini/Claude/OpenCode source files). Import on the Mac or
+  iPhone first, then export the normalized library.
 - **Topic reclassification** and taxonomy editing.
 
-The visible-thread cap of 420 applies, and only OpenCode archives carry spend. Like the Mac
-app, all rendering and parsing happens on device; the web app makes no analytics or telemetry
-requests.
+The visible-thread cap of 420 applies, and only OpenCode archives carry spend. Like the Mac and
+iPhone apps, all rendering and parsing happens on device; the web app makes no analytics or
+telemetry requests.
 
 ## Development
 

@@ -35,13 +35,14 @@ onto the app to try the importer without sharing your own data.
 
 ## OpenCode
 
-OpenCode stores its history in `~/.local/share/opencode/opencode.db`. MINDME opens that
-database **read-only in place** (nothing is copied) and normalizes the **150 most recently
-active top-level sessions**, including human prompts and assistant text.
+OpenCode stores its history in `~/.local/share/opencode/opencode.db`. On macOS, MINDME opens
+that database **read-only in place** (nothing is copied) and normalizes the **150 most recently
+active top-level sessions**, including human prompts and assistant text. On iPhone the app is
+sandboxed, so pick an `opencode.db` file with Import instead.
 
 Subagent sessions, reasoning traces, tool calls, patches, and snapshots are intentionally
-excluded. The import takes under a second for a typical library; import again with **⌘⇧O**
-to merge newer sessions.
+excluded. The import takes under a second for a typical library; on macOS import again with
+**⌘⇧O** to merge newer sessions.
 
 The importer reads the `session_v2` / `session_message` schema used by current OpenCode
 releases. The session limit is `OpenCodeImporter.defaultSessionLimit`, and per-thread message
@@ -72,9 +73,9 @@ caps live alongside it in `Core/Sources/MindMapCore/Import/OpenCodeImporter.swif
 
 ## Where the library lives
 
-Imported data is normalized into
-`~/Library/Application Support/MindMap/library.json`. Use **File → Reveal Library in Finder**
-to inspect or delete it. There is no networking code in the app.
+Imported data is normalized into `~/Library/Application Support/MindMap/library.json` on macOS;
+on iPhone it lives inside the app container. Use **File → Reveal Library in Finder** on macOS to
+inspect or delete it. There is no networking code in the app.
 
 ## Import limits
 
@@ -83,5 +84,5 @@ to inspect or delete it. There is no networking code in the app.
   characters so the library stays responsive.
 - The map renders at most 420 conversations at once. Use source/time/search filters for very
   large archives.
-- Importing real data clears the demo dataset automatically. **File → Load Demo Dataset**
-  restores it at any time.
+- Importing real data clears the demo dataset automatically. **File → Load Demo Dataset** on
+  macOS (or **••• → Load Demo Dataset** on iPhone) restores it at any time.

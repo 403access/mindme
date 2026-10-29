@@ -15,7 +15,7 @@ const features = [
   },
   {
     title: 'Local-first by default',
-    body: 'ChatGPT, Gemini, Claude, and OpenCode exports are parsed on your Mac. No accounts, no network calls, no telemetry.',
+    body: 'ChatGPT, Gemini, Claude, and OpenCode exports are parsed on your Mac or iPhone. No accounts, no network calls, no telemetry.',
   },
   {
     title: 'Flat or spatial',
@@ -23,7 +23,7 @@ const features = [
   },
   {
     title: 'Vocabulary when you want it',
-    body: 'Press ⌘4 for a frequency-sized word cloud, or ⌘5 to keep the constellation structure and anchor those words to their tag nodes. Click a word to isolate its threads.',
+    body: 'On Mac press ⌘4 for a frequency-sized word cloud, or ⌘5 to keep the constellation structure and anchor those words to their tag nodes. On iPhone, use the lens controls. Select a word to isolate its threads.',
   },
 ];
 
@@ -33,7 +33,7 @@ function HomepageHeader() {
     <header className={styles.hero}>
       <div className="container">
         <div className={styles.heroInner}>
-          <span className={styles.eyebrow}>MACOS · LOCAL-FIRST · OPEN SOURCE</span>
+          <span className={styles.eyebrow}>MACOS + IPHONE · LOCAL-FIRST · OPEN SOURCE</span>
           <Heading as="h1" className={styles.title}>
             {siteConfig.title}
           </Heading>

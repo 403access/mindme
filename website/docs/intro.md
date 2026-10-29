@@ -40,6 +40,9 @@ nodes into sized words. Read [Visualization](./visualization.md) for the full de
   sized by how many conversations share them. Click a word to isolate its threads.
 - **Hybrid cloud** — keep the constellation's root, hubs, threads, and links while anchoring
   sized words to their tag nodes, so the structure stays visible beneath the vocabulary.
+- **Mac and iPhone** — the desktop app and the iPhone app share the same `MindMapCore` parsers,
+  topic pipeline, and SwiftUI renderers. iPhone uses the Files picker for imports and sheets for
+  filters and inspection.
 - **Stays on your device** — no network calls, no accounts, no telemetry. Data is normalized
   into the app's local Application Support container on macOS and iOS.
 
