@@ -1,5 +1,7 @@
 import Foundation
+#if os(macOS)
 import AppKit
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 import MindMapCore
@@ -170,6 +172,11 @@ final class AppModel: ObservableObject {
     @Published var searchFocusRequest = 0
     @Published var showHelp = false
     @Published var showResetConfirmation = false
+    /// Set by `presentImportPanel` on iOS so the root view can present the
+    /// system document picker.
+    @Published var showImportPicker = false
+    /// Normalized library JSON staged for the iOS export sheet.
+    @Published var exportPayload: Data?
 
     let engine = GraphEngine()
     private let store: ThreadStore
@@ -464,7 +471,13 @@ final class AppModel: ObservableObject {
 
     // MARK: - Import
 
+    /// OpenCode's SQLite library lives in the user's home directory. iOS is
+    /// sandboxed, so the scan action is only offered on the Mac; the database
+    /// can still be imported on iOS when picked manually.
+    var supportsLocalOpenCodeScan: Bool { Platform.isMac }
+
     func presentImportPanel() {
+        #if os(macOS)
         let panel = NSOpenPanel()
         panel.title = "Import conversation exports"
         panel.message = "Choose ChatGPT / Gemini / Claude exports, a Takeout folder, MINDME JSON, or an OpenCode database."
@@ -479,12 +492,16 @@ final class AppModel: ObservableObject {
         panel.allowedContentTypes = types
         guard panel.runModal() == .OK else { return }
         importFiles(panel.urls)
+        #else
+        showImportPicker = true
+        #endif
     }
 
     /// Reads OpenCode's local SQLite library in place. Nothing is copied or
     /// uploaded; only prompts and assistant text are normalized.
     func importOpenCodeSessions() {
         guard !isImporting else { return }
+        #if os(macOS)
         guard let database = OpenCodeImporter.defaultDatabaseURL() else {
             showToast(
                 "No OpenCode library found",
@@ -494,6 +511,13 @@ final class AppModel: ObservableObject {
             return
         }
         importFiles([database])
+        #else
+        showToast(
+            "OpenCode scans stay on the Mac",
+            detail: "Pick an opencode.db file with Import to bring sessions onto this device.",
+            kind: .info
+        )
+        #endif
     }
 
     func importFiles(_ urls: [URL]) {
@@ -505,7 +529,14 @@ final class AppModel: ObservableObject {
             let result: Result<ImportResult, Error>
             do {
                 let imported = try await Task.detached(priority: .userInitiated) {
-                    try ConversationImporter.importFiles(at: urls)
+                    // Files chosen from the iOS document picker are
+                    // security-scoped; access must be requested around the
+                    // read. On macOS these calls simply return false.
+                    let scoped = urls.filter { $0.startAccessingSecurityScopedResource() }
+                    defer {
+                        for url in scoped { url.stopAccessingSecurityScopedResource() }
+                    }
+                    return try ConversationImporter.importFiles(at: urls)
                 }.value
                 result = .success(imported)
             } catch {
@@ -601,7 +632,16 @@ final class AppModel: ObservableObject {
     }
 
     func revealLibrary() {
+        #if os(macOS)
         store.revealInFinder()
+        #else
+        Platform.revealLibrary(at: store.libraryURL)
+        showToast(
+            "Library location copied",
+            detail: store.libraryURL.path,
+            kind: .info
+        )
+        #endif
     }
 
     /// Writes the current library to a standalone JSON file for the WebXR
@@ -615,6 +655,16 @@ final class AppModel: ObservableObject {
             )
             return
         }
+
+        let data: Data
+        do {
+            data = try questExportData()
+        } catch {
+            showToast("Could not export library", detail: error.localizedDescription, kind: .error)
+            return
+        }
+
+        #if os(macOS)
         let panel = NSSavePanel()
         panel.title = "Export library for MINDME Spatial"
         panel.message = "Save a library JSON, then open it in the Quest Browser before entering VR."
@@ -625,10 +675,6 @@ final class AppModel: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
         do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-            encoder.dateEncodingStrategy = .iso8601
-            let data = try encoder.encode(library)
             try data.write(to: url, options: .atomic)
             showToast(
                 "Library exported for Quest",
@@ -636,6 +682,31 @@ final class AppModel: ObservableObject {
                 kind: .success
             )
         } catch {
+            showToast("Could not export library", detail: error.localizedDescription, kind: .error)
+        }
+        #else
+        exportPayload = data
+        #endif
+    }
+
+    func questExportData() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        encoder.dateEncodingStrategy = .iso8601
+        return try encoder.encode(library)
+    }
+
+    func handleExportResult(_ result: Result<URL, Error>) {
+        exportPayload = nil
+        switch result {
+        case .success:
+            showToast(
+                "Library exported for Quest",
+                detail: "\(library.threads.count) conversations · open the file in the headset browser",
+                kind: .success
+            )
+        case .failure(let error):
+            if (error as? CocoaError)?.code == .userCancelled { return }
             showToast("Could not export library", detail: error.localizedDescription, kind: .error)
         }
     }

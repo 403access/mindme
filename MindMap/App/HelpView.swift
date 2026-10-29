@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 import MindMapCore
 
 struct HelpView: View {
@@ -83,10 +82,9 @@ struct HelpView: View {
                     }
 
                     HStack(spacing: 8) {
-                        HUDGhostButton(title: copied ? "Path copied" : "Reveal library", icon: "folder") {
-                            NSWorkspace.shared.activateFileViewerSelecting([
-                                ThreadStore().libraryURL
-                            ])
+                        HUDGhostButton(title: copied ? "Path copied" : (Platform.isMac ? "Reveal library" : "Copy library path"), icon: "folder") {
+                            Platform.revealLibrary(at: ThreadStore().libraryURL)
+                            copied = true
                         }
                         HUDGhostButton(title: "Close", icon: "checkmark") { dismiss() }
                     }
@@ -94,7 +92,11 @@ struct HelpView: View {
                 .padding(24)
             }
         }
+        #if os(macOS)
         .frame(width: 520, height: 620)
+        #else
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        #endif
         .preferredColorScheme(.dark)
     }
 

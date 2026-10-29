@@ -7,7 +7,8 @@ description: Build, test, release, and understand the MINDME codebase.
 
 ## Requirements
 
-- macOS 14 or newer
+- macOS 14 or newer for the desktop app
+- iOS 17 or newer for the iPhone app
 - Xcode 16+ (built and tested with Xcode 27 / Swift 6.4)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`) to regenerate the
   Xcode project
@@ -28,6 +29,28 @@ Build a distributable app bundle:
 make release      # -> MindMap/dist/MINDME.app
 make install      # -> ~/Applications/MINDME.app
 ```
+
+## iPhone
+
+```bash
+cd MindMap
+make ios          # generate project, build for iPhone Simulator
+```
+
+Or select the `MindMapIOS` scheme in Xcode and run on an iPhone simulator or device. The target
+is iPhone-only for now; simulator builds need no signing team, device builds use automatic
+signing. The mobile shell is `App/MobileRootView.swift`; `App/Platform.swift` holds the AppKit ↔
+UIKit shims. Both apps link the same `MindMapCore` package.
+
+To install directly on a connected iPhone:
+
+```bash
+cd MindMap
+make ios-device DEVICE_ID=00008101-... TEAM_ID=ABCDE12345
+```
+
+`DEVICE_ID` comes from `xcrun devicectl list devices`; `TEAM_ID` from Xcode → Settings →
+Accounts → your team.
 
 Run the test suites (importers, keyword extraction, clustering, graph filters, layout, storage, cameras, word clouds):
 

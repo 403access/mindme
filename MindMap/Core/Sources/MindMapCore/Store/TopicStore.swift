@@ -13,7 +13,8 @@ public final class TopicStore {
             self.directory = directory
         } else {
             let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-                ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
+                ?? URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+                    .appendingPathComponent("Library/Application Support")
             self.directory = base.appendingPathComponent("MindMap", isDirectory: true)
         }
         self.analysisURL = self.directory.appendingPathComponent("topics.json")

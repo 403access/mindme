@@ -7,14 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		07FF15D3620BC70471CE5484 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */; };
 		113175666272A4E5267615BD /* HybridWords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FABEE5DA1F5979893067D08 /* HybridWords.swift */; };
 		12A5BE9ADB9D57C888246331 /* GraphEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 836AF2AC1FFFC4F03ABDE5D9 /* GraphEngineTests.swift */; };
+		14C4FD37DCDF51A6BD409E56 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115F99F1A66EF5359E18B63F /* Platform.swift */; };
+		1A2D762D6E4052B5CC1E056C /* MindMapCore in Frameworks */ = {isa = PBXBuildFile; productRef = 527BB826E5E1F53580F872BC /* MindMapCore */; };
 		1C34A669F2D25024041D9C54 /* GraphEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */; };
+		1FEAFB998E432BE12DC56380 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9076702BDBAB5B610FDB8 /* RootView.swift */; };
 		22AC8C80F774C52D26943709 /* GraphCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */; };
 		243E5A7776ADE48F8855A40B /* GraphCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */; };
+		3646FC3C6C1664FD2A991761 /* WordCloudView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BFE656AFC79B98062506A2 /* WordCloudView.swift */; };
 		36DF99A83B51CBFB9F5BBF5B /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */; };
 		3A43E3035137513A9919BE61 /* MindMapCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3B8EA961BD5333122169B4FE /* MindMapCore */; };
+		40099C5AA0D67D59EA08085D /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */; };
 		408C252491AB83B790FAA3EB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4C3F2F5A60B6FC37451E5BB0 /* Assets.xcassets */; };
+		4443567E7DE32B4223ED6D8E /* Perspective.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0E2B35061C9196EB34CF8D /* Perspective.swift */; };
 		44E4C1D14AE75B381A07E961 /* CameraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44027CC7971335031837ECF2 /* CameraTests.swift */; };
 		458911454E0459E3FB1E8D82 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03CCB62197FEC868B6386B5 /* Theme.swift */; };
 		4611D503EE598677C8D12A3A /* HybridWords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FABEE5DA1F5979893067D08 /* HybridWords.swift */; };
@@ -23,36 +30,53 @@
 		4EE12217F3FD5F3C3057FC24 /* DetailPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E96CC769620FBAAA74B912 /* DetailPanelView.swift */; };
 		5693EA3D03516796AEAA5054 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9076702BDBAB5B610FDB8 /* RootView.swift */; };
 		5A69E0D6BA0EF491C5D93DB0 /* WordCloudLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 021A48734020E1D83A59E61F /* WordCloudLayoutTests.swift */; };
+		5EBAAA408072D6FFC655D9C4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4C3F2F5A60B6FC37451E5BB0 /* Assets.xcassets */; };
+		6734F608322E57B63255F97A /* MobileRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F877D9C3231B79169E9130 /* MobileRootView.swift */; };
+		68B3B20E51FF126319886F8B /* HybridWords.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FABEE5DA1F5979893067D08 /* HybridWords.swift */; };
 		6DDBDA38B940CD7080F955A6 /* MindMapApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */; };
 		744BF92C681AB275AF8A071A /* MindMapCore in Frameworks */ = {isa = PBXBuildFile; productRef = F853DDAE7184B443FF6015C1 /* MindMapCore */; };
 		79ED86DD6731E59DE7B209F5 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */; };
+		85083528F79674D6BE451F98 /* MobileRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F877D9C3231B79169E9130 /* MobileRootView.swift */; };
 		886567E54612421BD7258FE4 /* MapRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F26818BD2B4233A0B707255 /* MapRenderer.swift */; };
 		8D344636AD2DFDCA3AB4E5D1 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */; };
+		8DF146AAB0C8D83B7D19D344 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F632140FF2996A97BD75178 /* HelpView.swift */; };
 		8E3A30164D104DF1F67BC893 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D9076702BDBAB5B610FDB8 /* RootView.swift */; };
 		919EB876A74CC18F10A3CC81 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */; };
+		924932FE082FF3FCD5FE812D /* MapRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F26818BD2B4233A0B707255 /* MapRenderer.swift */; };
+		95FBF97F83E5B6197CAD3E1D /* GraphEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */; };
 		97379A9A4826DB298D619BF2 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63601EA678420B921B04D8D6 /* AppModelTests.swift */; };
+		9D69AD6C5B2E84F0F97597CD /* MindMapApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */; };
+		9DAE058DF8744DD7F1AB015B /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115F99F1A66EF5359E18B63F /* Platform.swift */; };
 		A74992C3D350894C979074AB /* AppMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1064A3B0BDD6D44D89B1D479 /* AppMetadataTests.swift */; };
+		A777B4826D8E14031CD3DF0B /* GraphCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */; };
 		AB5936ED1DB00FEE84D56793 /* WordCloudView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BFE656AFC79B98062506A2 /* WordCloudView.swift */; };
+		B2591B5D0875B08D5BD6C0B1 /* DetailPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E96CC769620FBAAA74B912 /* DetailPanelView.swift */; };
 		BA82FAA875CA7528F02AE7EC /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F632140FF2996A97BD75178 /* HelpView.swift */; };
 		BC9571339AD9B6703FB5BFCA /* FormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 836D9418DEFF3C6747E352A4 /* FormatTests.swift */; };
 		CA27125EDEAC2F6BC8803D39 /* HelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F632140FF2996A97BD75178 /* HelpView.swift */; };
 		CBE39337AA0424CBBB6C9E8A /* DetailPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38E96CC769620FBAAA74B912 /* DetailPanelView.swift */; };
+		D1A97A454220847119789935 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03CCB62197FEC868B6386B5 /* Theme.swift */; };
+		E78E7795A31B4D4BB4A9CD86 /* MobileRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F877D9C3231B79169E9130 /* MobileRootView.swift */; };
 		E886AD1937F862CF180B31AA /* WordCloudView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8BFE656AFC79B98062506A2 /* WordCloudView.swift */; };
 		EAD400C6B801519BE8C2FC38 /* Perspective.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0E2B35061C9196EB34CF8D /* Perspective.swift */; };
 		F4AF466647F166177CD8EC2A /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03CCB62197FEC868B6386B5 /* Theme.swift */; };
 		F515331EAD77317AECDD0107 /* GraphEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */; };
+		FB17AEA5C5CD17C17545418A /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = 115F99F1A66EF5359E18B63F /* Platform.swift */; };
 		FC05F7D57FBAA8EE5CEC6E3E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4C3F2F5A60B6FC37451E5BB0 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		021A48734020E1D83A59E61F /* WordCloudLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordCloudLayoutTests.swift; sourceTree = "<group>"; };
 		1064A3B0BDD6D44D89B1D479 /* AppMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppMetadataTests.swift; sourceTree = "<group>"; };
+		115F99F1A66EF5359E18B63F /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
 		23355A16DA1DFFCA37F173E9 /* GraphCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphCanvasView.swift; sourceTree = "<group>"; };
 		38E96CC769620FBAAA74B912 /* DetailPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailPanelView.swift; sourceTree = "<group>"; };
 		3F632140FF2996A97BD75178 /* HelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpView.swift; sourceTree = "<group>"; };
 		44027CC7971335031837ECF2 /* CameraTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraTests.swift; sourceTree = "<group>"; };
 		4ADB184A0AD6C19AFF0D0D13 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		4B240C5E45C7E783E7CA306C /* MindMapIOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MindMapIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C3F2F5A60B6FC37451E5BB0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		51F877D9C3231B79169E9130 /* MobileRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileRootView.swift; sourceTree = "<group>"; };
 		55BCEE0E035FA016FAB5AC0B /* GraphEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphEngine.swift; sourceTree = "<group>"; };
 		59D9076702BDBAB5B610FDB8 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		63601EA678420B921B04D8D6 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
@@ -71,6 +95,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		13794BE285F811C5CA65F25F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A2D762D6E4052B5CC1E056C /* MindMapCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6E52770B1882FF9798BD0614 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -102,7 +134,9 @@
 				7FABEE5DA1F5979893067D08 /* HybridWords.swift */,
 				7F26818BD2B4233A0B707255 /* MapRenderer.swift */,
 				685979C0BEA4F11D561DF6E1 /* MindMapApp.swift */,
+				51F877D9C3231B79169E9130 /* MobileRootView.swift */,
 				DE0E2B35061C9196EB34CF8D /* Perspective.swift */,
+				115F99F1A66EF5359E18B63F /* Platform.swift */,
 				59D9076702BDBAB5B610FDB8 /* RootView.swift */,
 				AC5F55AEEF8BA6DD7DF0DAB1 /* SidebarView.swift */,
 				B03CCB62197FEC868B6386B5 /* Theme.swift */,
@@ -115,6 +149,7 @@
 			isa = PBXGroup;
 			children = (
 				E295845268FF88F9231FBCBE /* MindMap.app */,
+				4B240C5E45C7E783E7CA306C /* MindMapIOS.app */,
 				F04AC1007DF28569FB7E51C8 /* MindMapTests.xctest */,
 			);
 			name = Products;
@@ -162,6 +197,26 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		60B58908730F24A5412877B8 /* MindMapIOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F12603960C8B619383DAC82B /* Build configuration list for PBXNativeTarget "MindMapIOS" */;
+			buildPhases = (
+				83A2F5F5BF93EBCD43134202 /* Sources */,
+				F0CB6D08EDC14899952BFF63 /* Resources */,
+				13794BE285F811C5CA65F25F /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MindMapIOS;
+			packageProductDependencies = (
+				527BB826E5E1F53580F872BC /* MindMapCore */,
+			);
+			productName = MindMapIOS;
+			productReference = 4B240C5E45C7E783E7CA306C /* MindMapIOS.app */;
+			productType = "com.apple.product-type.application";
+		};
 		F4F65F3C035C1304FAE9860A /* MindMap */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B342F6B4DA10E599A1303300 /* Build configuration list for PBXNativeTarget "MindMap" */;
@@ -211,6 +266,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					60B58908730F24A5412877B8 = {
+						ProvisioningStyle = Automatic;
+					};
 					F4F65F3C035C1304FAE9860A = {
 						ProvisioningStyle = Manual;
 					};
@@ -237,6 +295,7 @@
 			projectRoot = "";
 			targets = (
 				F4F65F3C035C1304FAE9860A /* MindMap */,
+				60B58908730F24A5412877B8 /* MindMapIOS */,
 				F611E37F13137E8AC315B35A /* MindMapTests */,
 			);
 		};
@@ -259,6 +318,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F0CB6D08EDC14899952BFF63 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5EBAAA408072D6FFC655D9C4 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -274,11 +341,35 @@
 				4611D503EE598677C8D12A3A /* HybridWords.swift in Sources */,
 				4642136CC7D1BE404F99F1E2 /* MapRenderer.swift in Sources */,
 				6DDBDA38B940CD7080F955A6 /* MindMapApp.swift in Sources */,
+				85083528F79674D6BE451F98 /* MobileRootView.swift in Sources */,
 				4E2AA918E48D641065430D52 /* Perspective.swift in Sources */,
+				9DAE058DF8744DD7F1AB015B /* Platform.swift in Sources */,
 				8E3A30164D104DF1F67BC893 /* RootView.swift in Sources */,
 				919EB876A74CC18F10A3CC81 /* SidebarView.swift in Sources */,
 				458911454E0459E3FB1E8D82 /* Theme.swift in Sources */,
 				AB5936ED1DB00FEE84D56793 /* WordCloudView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		83A2F5F5BF93EBCD43134202 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				07FF15D3620BC70471CE5484 /* AppModel.swift in Sources */,
+				B2591B5D0875B08D5BD6C0B1 /* DetailPanelView.swift in Sources */,
+				A777B4826D8E14031CD3DF0B /* GraphCanvasView.swift in Sources */,
+				95FBF97F83E5B6197CAD3E1D /* GraphEngine.swift in Sources */,
+				8DF146AAB0C8D83B7D19D344 /* HelpView.swift in Sources */,
+				68B3B20E51FF126319886F8B /* HybridWords.swift in Sources */,
+				924932FE082FF3FCD5FE812D /* MapRenderer.swift in Sources */,
+				9D69AD6C5B2E84F0F97597CD /* MindMapApp.swift in Sources */,
+				6734F608322E57B63255F97A /* MobileRootView.swift in Sources */,
+				4443567E7DE32B4223ED6D8E /* Perspective.swift in Sources */,
+				14C4FD37DCDF51A6BD409E56 /* Platform.swift in Sources */,
+				1FEAFB998E432BE12DC56380 /* RootView.swift in Sources */,
+				40099C5AA0D67D59EA08085D /* SidebarView.swift in Sources */,
+				D1A97A454220847119789935 /* Theme.swift in Sources */,
+				3646FC3C6C1664FD2A991761 /* WordCloudView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,7 +389,9 @@
 				CA27125EDEAC2F6BC8803D39 /* HelpView.swift in Sources */,
 				113175666272A4E5267615BD /* HybridWords.swift in Sources */,
 				886567E54612421BD7258FE4 /* MapRenderer.swift in Sources */,
+				E78E7795A31B4D4BB4A9CD86 /* MobileRootView.swift in Sources */,
 				EAD400C6B801519BE8C2FC38 /* Perspective.swift in Sources */,
+				FB17AEA5C5CD17C17545418A /* Platform.swift in Sources */,
 				5693EA3D03516796AEAA5054 /* RootView.swift in Sources */,
 				8D344636AD2DFDCA3AB4E5D1 /* SidebarView.swift in Sources */,
 				F4AF466647F166177CD8EC2A /* Theme.swift in Sources */,
@@ -310,6 +403,35 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		4F975DD2D2DF419BCC4DEA5F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MINDME;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.oliver.mindme;
+				PRODUCT_NAME = MINDME;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 		512359C959E9C63B66EDD0B2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -432,15 +554,44 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C6740475A35366D01CE1509F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MINDME;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.oliver.mindme;
+				PRODUCT_NAME = MINDME;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -508,11 +659,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -549,6 +700,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		F12603960C8B619383DAC82B /* Build configuration list for PBXNativeTarget "MindMapIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C6740475A35366D01CE1509F /* Debug */,
+				4F975DD2D2DF419BCC4DEA5F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -560,6 +720,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		3B8EA961BD5333122169B4FE /* MindMapCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MindMapCore;
+		};
+		527BB826E5E1F53580F872BC /* MindMapCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MindMapCore;
 		};

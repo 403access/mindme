@@ -40,8 +40,8 @@ nodes into sized words. Read [Visualization](./visualization.md) for the full de
   sized by how many conversations share them. Click a word to isolate its threads.
 - **Hybrid cloud** — keep the constellation's root, hubs, threads, and links while anchoring
   sized words to their tag nodes, so the structure stays visible beneath the vocabulary.
-- **Stays on your Mac** — no network calls, no accounts, no telemetry. Data is normalized
-  into `~/Library/Application Support/MindMap/library.json`.
+- **Stays on your device** — no network calls, no accounts, no telemetry. Data is normalized
+  into the app's local Application Support container on macOS and iOS.
 
 A curated demo dataset is generated on first launch so the map is explorable before importing
 anything. Demo threads are labelled and can be cleared with one click; the first real import
@@ -63,7 +63,15 @@ cd mindme/MindMap
 make run          # generate project, build Debug, open the app
 ```
 
-Requirements: macOS 14+, Xcode 16+, and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+Requirements: macOS 14+, Xcode 16+, and [XcodeGen](https://github.com/yonaskolb/XcodeGen). The
+iPhone app runs on iOS 17+.
+
+For iPhone Simulator:
+
+```bash
+cd mindme/MindMap
+make ios
+```
 
 ## Explore the docs
 

@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 import MindMapCore
 
 // MARK: - Layout
@@ -157,8 +156,7 @@ struct WordCloudLayout {
     }
 
     static func measure(_ term: String, font: CGFloat) -> CGSize {
-        let nsFont = NSFont.systemFont(ofSize: font, weight: .semibold)
-        return (term as NSString).size(withAttributes: [.font: nsFont])
+        Platform.measureText(term, font: font)
     }
 
     private static func spiralPoint(
@@ -542,11 +540,7 @@ struct WordCloudView: View {
     private func setCursor(hand: Bool) {
         guard hand != cursorIsHand else { return }
         cursorIsHand = hand
-        if hand {
-            NSCursor.pointingHand.set()
-        } else {
-            NSCursor.arrow.set()
-        }
+        Platform.setPointer(hand: hand)
     }
 }
 
@@ -615,7 +609,7 @@ struct CloudEmptyState: View {
 
     private var explanation: String {
         if !model.hasThreads {
-            return "Import a conversation export to grow the word cloud.\nEverything stays on this Mac."
+            return "Import a conversation export to grow the word cloud.\nEverything stays on this device."
         }
         if tagsOff {
             return "The cloud is built from shared keyword tags.\nSwitch TAGS back on to see the lexical field."

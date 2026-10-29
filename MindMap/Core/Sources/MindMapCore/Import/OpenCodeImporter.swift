@@ -24,10 +24,12 @@ public enum OpenCodeImporter {
                     .appendingPathComponent("opencode/opencode.db")
             )
         }
+        #if os(macOS)
         candidates.append(
             FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent(".local/share/opencode/opencode.db")
         )
+        #endif
         if let applicationSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask

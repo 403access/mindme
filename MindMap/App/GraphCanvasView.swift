@@ -1,11 +1,14 @@
 import SwiftUI
+#if os(macOS)
 import AppKit
+#endif
 import MindMapCore
 
 struct GraphCanvasView: View {
     @ObservedObject var model: AppModel
     @ObservedObject var engine: GraphEngine
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var hoverLocation: CGPoint?
     @State private var dragOrigin: CGPoint?
     @State private var lastTranslation: CGSize = .zero
@@ -16,6 +19,14 @@ struct GraphCanvasView: View {
     @State private var hybridCache = HybridLayoutCache()
 
     private let mapCornerRadius: CGFloat = 18
+
+    private var isCompactLayout: Bool {
+        #if os(iOS)
+        horizontalSizeClass == .compact
+        #else
+        false
+        #endif
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -150,6 +161,21 @@ struct GraphCanvasView: View {
         case .region: return "REGION CONSTELLATIONS"
         case .era: return "TEMPORAL SHELLS"
         }
+    }
+
+    private var legendHint: String {
+        if model.is3D {
+            #if os(iOS)
+            return "DRAG ORBIT · PINCH ZOOM"
+            #else
+            return "DRAG ORBIT · ⇧DRAG PAN · PINCH ZOOM"
+            #endif
+        }
+        #if os(iOS)
+        return "TOUCH TO INSPECT · PINCH ZOOM"
+        #else
+        return "HOVER TO IDENTIFY"
+        #endif
     }
 
     @ViewBuilder
@@ -312,83 +338,91 @@ struct GraphCanvasView: View {
             .buttonStyle(.plain)
             .help("Toggle spend heat")
 
-            HUDIconButton(systemName: "plus", help: "Zoom in") {
-                zoom(by: 1.22, at: CGPoint(x: size.width / 2, y: size.height / 2))
-            }
-            HUDIconButton(systemName: "minus", help: "Zoom out") {
-                zoom(by: 1 / 1.22, at: CGPoint(x: size.width / 2, y: size.height / 2))
+            if !isCompactLayout {
+                HUDIconButton(systemName: "plus", help: "Zoom in") {
+                    zoom(by: 1.22, at: CGPoint(x: size.width / 2, y: size.height / 2))
+                }
+                HUDIconButton(systemName: "minus", help: "Zoom out") {
+                    zoom(by: 1 / 1.22, at: CGPoint(x: size.width / 2, y: size.height / 2))
+                }
             }
             HUDIconButton(systemName: "scope", help: "Fit map  ⌘0") {
                 engine.requestFit()
             }
-            HUDIconButton(
-                systemName: "textformat",
-                help: "Toggle labels",
-                active: model.showLabels
-            ) {
-                model.showLabels.toggle()
+            if !isCompactLayout {
+                HUDIconButton(
+                    systemName: "textformat",
+                    help: "Toggle labels",
+                    active: model.showLabels
+                ) {
+                    model.showLabels.toggle()
+                }
             }
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 
         // Zoom readout
-        VStack {
-            Spacer()
-            HStack {
+        if !isCompactLayout {
+            VStack {
                 Spacer()
-                HStack(spacing: 7) {
-                    if model.is3D {
-                        Text("3D")
-                            .font(HUDFont.micro(8.5))
-                            .tracking(0.8)
-                            .foregroundStyle(HUD.accent.opacity(0.9))
+                HStack {
+                    Spacer()
+                    HStack(spacing: 7) {
+                        if model.is3D {
+                            Text("3D")
+                                .font(HUDFont.micro(8.5))
+                                .tracking(0.8)
+                                .foregroundStyle(HUD.accent.opacity(0.9))
+                            Rectangle().fill(HUD.hairline).frame(width: 1, height: 10)
+                            Text("DIST \(Int(engine.frame.camera3D.distance))")
+                                .font(HUDFont.micro(8))
+                                .tracking(0.4)
+                                .foregroundStyle(HUD.textSoft)
+                            Rectangle().fill(HUD.hairline).frame(width: 1, height: 10)
+                            Text("\(Int(engine.frame.camera3D.yaw * 180 / .pi))° / \(Int(engine.frame.camera3D.pitch * 180 / .pi))°")
+                                .font(HUDFont.micro(8))
+                                .tracking(0.4)
+                                .foregroundStyle(HUD.muted)
+                        } else {
+                            Text("\(Int((engine.frame.camera.zoom * 100).rounded()))%")
+                                .font(HUDFont.micro(8.5))
+                                .tracking(0.6)
+                                .foregroundStyle(HUD.textSoft)
+                        }
                         Rectangle().fill(HUD.hairline).frame(width: 1, height: 10)
-                        Text("DIST \(Int(engine.frame.camera3D.distance))")
+                        Text(engine.frame.isSettling ? "\(engine.frame.fps) FPS" : "ECO")
                             .font(HUDFont.micro(8))
-                            .tracking(0.4)
-                            .foregroundStyle(HUD.textSoft)
-                        Rectangle().fill(HUD.hairline).frame(width: 1, height: 10)
-                        Text("\(Int(engine.frame.camera3D.yaw * 180 / .pi))° / \(Int(engine.frame.camera3D.pitch * 180 / .pi))°")
-                            .font(HUDFont.micro(8))
-                            .tracking(0.4)
-                            .foregroundStyle(HUD.muted)
-                    } else {
-                        Text("\(Int((engine.frame.camera.zoom * 100).rounded()))%")
-                            .font(HUDFont.micro(8.5))
-                            .tracking(0.6)
-                            .foregroundStyle(HUD.textSoft)
+                            .tracking(0.5)
+                            .foregroundStyle(engine.frame.isSettling ? HUD.muted : HUD.lime.opacity(0.7))
                     }
-                    Rectangle().fill(HUD.hairline).frame(width: 1, height: 10)
-                    Text(engine.frame.isSettling ? "\(engine.frame.fps) FPS" : "ECO")
-                        .font(HUDFont.micro(8))
-                        .tracking(0.5)
-                        .foregroundStyle(engine.frame.isSettling ? HUD.muted : HUD.lime.opacity(0.7))
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(Color(hex: 0x050A12).opacity(0.8)))
+                    .overlay(Capsule().strokeBorder(HUD.hairline, lineWidth: 0.7))
+                    .padding(.trailing, 176)
+                    .padding(.bottom, 14)
                 }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 5)
-                .background(Capsule().fill(Color(hex: 0x050A12).opacity(0.8)))
-                .overlay(Capsule().strokeBorder(HUD.hairline, lineWidth: 0.7))
-                .padding(.trailing, 176)
-                .padding(.bottom, 14)
             }
         }
 
         // Minimap (2D) or orbit gizmo (3D)
-        Group {
-            if model.is3D {
-                SpatialGizmo(engine: engine)
-            } else {
-                MinimapView(model: model, engine: engine)
+        if !isCompactLayout {
+            Group {
+                if model.is3D {
+                    SpatialGizmo(engine: engine)
+                } else {
+                    MinimapView(model: model, engine: engine)
+                }
             }
+            .frame(width: 154, height: 104)
+            .padding(14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
-        .frame(width: 154, height: 104)
-        .padding(14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
 
         // Legend, bottom-left
         HStack(spacing: 12) {
-            Text(model.is3D ? "DRAG ORBIT · ⇧DRAG PAN · PINCH ZOOM" : "HOVER TO IDENTIFY")
+            Text(legendHint)
                 .font(HUDFont.micro(7))
                 .tracking(0.9)
                 .foregroundStyle(model.is3D ? HUD.accent.opacity(0.7) : HUD.dim.opacity(0.7))
@@ -442,7 +476,13 @@ struct GraphCanvasView: View {
                     dragOrigin = value.startLocation
                     lastTranslation = .zero
                     didPan = false
+                    #if os(macOS)
                     dragPans = !engine.spatialMode || NSEvent.modifierFlags.contains(.shift)
+                    #else
+                    // Touch has no shift modifier; 3D drags orbit. Two-finger
+                    // pinch still zooms and the fit control reframes the scene.
+                    dragPans = !engine.spatialMode
+                    #endif
                 }
                 let total = hypot(value.translation.width, value.translation.height)
                 if total > 3 { didPan = true }
@@ -530,11 +570,7 @@ struct GraphCanvasView: View {
     private func setCursor(hand: Bool) {
         guard hand != cursorIsHand else { return }
         cursorIsHand = hand
-        if hand {
-            NSCursor.pointingHand.set()
-        } else {
-            NSCursor.arrow.set()
-        }
+        Platform.setPointer(hand: hand)
     }
 }
 
@@ -839,7 +875,7 @@ struct EmptyMapState: View {
 
     private var explanation: String {
         guard hasLibrary else {
-            return "Import a conversation export to grow the constellation.\nEverything stays on this Mac."
+            return "Import a conversation export to grow the constellation.\nEverything stays on this device."
         }
         if model.providers.isEmpty {
             return "Every source is switched off. Turn at least one back on\nin the filter matrix to restore the map."

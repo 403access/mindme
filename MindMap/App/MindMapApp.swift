@@ -1,7 +1,10 @@
 import SwiftUI
-import AppKit
 import MindMapCore
+#if os(macOS)
+import AppKit
+#endif
 
+#if os(macOS)
 @main
 struct MindMapApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -160,3 +163,16 @@ struct AppCommands: Commands {
         }
     }
 }
+#else
+@main
+struct MindMapApp: App {
+    @StateObject private var model = AppModel()
+
+    var body: some Scene {
+        WindowGroup("MINDME") {
+            MobileRootView(model: model)
+                .preferredColorScheme(.dark)
+        }
+    }
+}
+#endif

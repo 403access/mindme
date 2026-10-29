@@ -3,6 +3,9 @@ import MindMapCore
 
 struct SidebarView: View {
     @ObservedObject var model: AppModel
+    /// Optional override so a sheet can dismiss itself before presenting the
+    /// system document picker.
+    var importAction: (() -> Void)?
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -32,10 +35,12 @@ struct SidebarView: View {
         .onAppear {
             // macOS focuses the first text field on launch; keep the map itself
             // in focus until the user actually asks to search.
+            #if os(macOS)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                 searchFocused = false
                 NSApp.keyWindow?.makeFirstResponder(nil)
             }
+            #endif
         }
     }
 
@@ -96,7 +101,7 @@ struct SidebarView: View {
 
     private func sourceRow(_ provider: Provider) -> some View {
         let count = model.providerCount(provider)
-        let isScan = provider == .opencode && count == 0
+        let isScan = provider == .opencode && count == 0 && model.supportsLocalOpenCodeScan
         let enabled = model.providers.contains(provider)
         let available = count > 0 || isScan
         let accent = HUD.providerColor(provider)
@@ -278,6 +283,7 @@ struct SidebarView: View {
                         .tracking(0.7)
                         .foregroundStyle(HUD.text)
                         .focused($searchFocused)
+                        .disableAutocapitalization()
                         .onSubmit {
                             model.applySearchIsolation()
                             searchFocused = false
@@ -460,7 +466,11 @@ struct SidebarView: View {
                 title: model.isImporting ? "Parsing…" : "Import exports",
                 icon: "square.and.arrow.down"
             ) {
-                model.presentImportPanel()
+                if let importAction {
+                    importAction()
+                } else {
+                    model.presentImportPanel()
+                }
             }
             .disabled(model.isImporting)
 
@@ -486,7 +496,7 @@ struct SidebarView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "lock.fill")
                             .font(.system(size: 6.5))
-                        Text("DATA STAYS ON THIS MAC")
+                        Text("DATA STAYS ON THIS DEVICE")
                             .font(HUDFont.micro(6.5))
                             .tracking(0.6)
                     }

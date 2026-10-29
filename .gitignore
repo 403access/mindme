@@ -1,7 +1,14 @@
 .DS_Store
+
+# Google Takeout exports (hundreds of MB of personal data)
+takeout-*.zip
+.takeout-gemini/
+gemini-export/
 MindMap/.build/
 MindMap/.build-release/
 MindMap/.build-tests/
+MindMap/.build-ios/
+MindMap/.build-device/
 MindMap/dist/
 MindMap/MindMap.xcodeproj/xcuserdata/
 MindMap/MindMap.xcodeproj/project.xcworkspace/xcuserdata/

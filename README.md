@@ -23,13 +23,14 @@ The same constellation in spatial mode:
 - **2D or 3D** — flip the map into a spatial perspective with a z-axis, depth-sorted nodes, a perspective floor, and an orbit camera. Drag to orbit, Shift-drag to pan, pinch or use +/− to zoom.
 - **Word cloud** — switch the same filtered library into a semantic cloud where keywords are sized by how many conversations share them. Click a word to isolate its threads. Toggle with **⌘4**, the **CLOUD** view control, or the sidebar.
 - **Hybrid cloud** — keep the constellation's root, hubs, threads, and links while sizing and anchoring the words to their tag nodes. The map structure stays visible beneath the vocabulary. Toggle with **⌘5**, the **HYBRID** control, or the sidebar.
-- **Stays on your device** — no accounts, no telemetry. The Mac app makes no network calls and normalizes data into `~/Library/Application Support/MindMap/library.json`. The Quest viewer reads the exported library on-device and stores it in the headset browser's local storage.
+- **Stays on your device** — no accounts, no telemetry. The Mac and iPhone apps make no network calls and normalize data into their local Application Support container. The Quest viewer reads the exported library on-device and stores it in the headset browser's local storage.
 
 A curated **demo dataset** is generated on first launch so the map is explorable before importing anything. Demo threads are labelled and can be cleared with one click; the first real import clears them automatically.
 
 ## Requirements
 
-- macOS 14 or newer
+- macOS 14 or newer for the desktop app
+- iOS 17 or newer on an iPhone for the mobile app
 - Xcode 16+ (built and tested with Xcode 27 / Swift 6.4)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`) to regenerate the Xcode project
 - Node.js 22+ and a **Meta Quest 3** — or desktop Chromium for the XR simulator — for the WebXR viewer in [`spatial/`](spatial)
@@ -38,7 +39,7 @@ A curated **demo dataset** is generated on first launch so the map is explorable
 
 ```bash
 cd MindMap
-make run          # generate project, build Debug, open the app
+make run          # generate project, build Debug, open the Mac app
 ```
 
 Or open `MindMap/MindMap.xcodeproj` in Xcode and run the `MindMap` scheme.
@@ -218,9 +219,11 @@ Interaction:
 
 ```
 MindMap/
-├── App/                     SwiftUI app (macOS)
-│   ├── MindMapApp.swift     app lifecycle, menus
+├── App/                     SwiftUI app (macOS + iPhone)
+│   ├── MindMapApp.swift     app lifecycle, menus (macOS) / mobile entry (iOS)
 │   ├── AppModel.swift       library, filters, import orchestration
+│   ├── MobileRootView.swift iPhone shell: top bar, sheets, document pickers
+│   ├── Platform.swift       AppKit/UIKit shims, export document, cursor + active state
 │   ├── GraphEngine.swift    simulation clock, 2D/3D cameras, hit testing, render throttling
 │   ├── Perspective.swift    perspective camera, projection, 3D fit
 │   ├── MapRenderer.swift    Canvas renderer (2D/3D nodes, edges, labels, depth)
@@ -249,7 +252,7 @@ spatial/                     WebXR viewer for Meta Quest 3 (three.js + Vite)
 
 **Performance notes:** the 2D force simulation runs at 60 Hz only while settling (about six seconds), then the renderer drops to a 10 fps ambient clock. The 3D layout is deterministic and static; orbiting and projecting it is cheap, and the same throttle applies. The free word cloud packs words once per filter/size change and only animates a gentle 15 fps drift while it is on screen. The hybrid cloud caches keyword seeds, colours, and measured text per graph and re-places words only when the projection changes; word collisions use a spatial grid, and a settled camera costs a single cache-key comparison per frame. Projections are shared across the map's edge/node/label passes, and focus paths are resolved once per frame instead of per edge. All node sizes and labels are drawn in screen space so zoom changes spacing but never legibility, and the canvas only publishes a frame when something actually changed. Toggle **MOTION** off in the sidebar (or *Map → Ambient Motion*) for an essentially static, near-zero-idle-CPU map.
 
-**Privacy:** the macOS app has no networking code. Export files and the OpenCode database are parsed locally and normalized into a JSON library in Application Support. Use *File → Reveal Library in Finder* to inspect or delete it. The Quest viewer loads a static bundle but parses and stores the library on the headset; it has no accounts, analytics, or telemetry.
+**Privacy:** neither the macOS nor the iPhone app has networking code. Export files and the OpenCode database are parsed locally and normalized into a JSON library in Application Support. Use *File → Reveal Library in Finder* to inspect or delete it. The Quest viewer loads a static bundle but parses and stores the library on the headset; it has no accounts, analytics, or telemetry.
 
 ## Limitations / notes
 
@@ -260,11 +263,45 @@ spatial/                     WebXR viewer for Meta Quest 3 (three.js + Vite)
 - The map renders at most 420 conversations at once (configurable in `GraphFilters.maxThreads`); use source/time/search filters for very large archives.
 - Keyword extraction is intentionally lightweight (TF-IDF-ish, English + German stopwords). Topic classification uses deterministic hashed bag-of-words embeddings plus seed vocabularies — explainable and offline, not a neural sentence encoder. The `TopicEmbeddingProvider` protocol is the seam for dropping in a bundled CoreML MiniLM later.
 - Topic analysis runs once per archive change and caches every thread profile by content hash. A 400-thread library takes a couple of seconds on first run; later launches reuse `topics.json`, and only new or edited conversations are reclassified.
-- The app is ad-hoc signed for local use. For distribution you will want your own Developer ID and notarization.
+- The Mac app is ad-hoc signed for local use. For distribution you will want your own Developer ID and notarization. The iOS target uses automatic signing and needs a development team selected for on-device builds; simulator builds need no signing.
 - The Quest viewer accepts the normalized MINDME library JSON, not raw provider exports. Import on the Mac, then use **File → Export Library for Quest…**. It needs a secure context: `localhost` over `adb reverse`, or HTTPS hosting.
 
-## iOS
+## iPhone
 
-`MindMapCore` is already platform-neutral (Foundation + its own `Vec2`, iOS 17 minimum). The rendering layer is SwiftUI `Canvas`, so an iOS target mainly needs a compact sidebar/inspector presentation and touch gestures (the `MagnifyGesture` and tap handling already work on iOS 17). The project is structured so the core can be linked unchanged from a future iOS app target.
+MINDME has a native iPhone target built from the same SwiftUI rendering layer and `MindMapCore`
+pipeline as the Mac app. It is designed for a phone screen first:
+
+- The constellation fills the screen; the filter matrix opens as a sheet from the top bar.
+- Tapping a node opens the inspector as a sheet. Drag to pan, pinch to zoom, and use the on-map
+  2D/3D and lens controls.
+- **Import** uses the Files picker (JSON, HTML, SQLite, or a whole Takeout folder). Files are read
+  with security-scoped access and normalized into the app container.
+- **Export Library for Quest** writes the same JSON through the system share sheet.
+- OpenCode's `~/.local/share/opencode/opencode.db` scan is Mac-only because iOS is sandboxed; you
+  can still pick an `opencode.db` file manually with Import.
+
+Build it for the iPhone Simulator:
+
+```bash
+cd MindMap
+make ios          # generate project, build for iOS Simulator
+```
+
+Or open `MindMap/MindMap.xcodeproj`, choose the `MindMapIOS` scheme, and run on an iPhone
+simulator or device. The iOS target is iPhone-only for now (`TARGETED_DEVICE_FAMILY = 1`).
+
+To install directly on a connected iPhone:
+
+```bash
+make ios-device DEVICE_ID=00008101-... TEAM_ID=ABCDE12345
+```
+
+Find `DEVICE_ID` with `xcrun devicectl list devices` and `TEAM_ID` in Xcode → Settings →
+Accounts → your team. The target uses automatic signing and `-allowProvisioningUpdates`, so a
+development profile is created on the first device build.
+
+The mobile presentation lives in `App/MobileRootView.swift`; `App/Platform.swift` isolates the
+handful of AppKit/UIKit differences (text measurement, pointer cursors, active state, file
+location). `MindMapCore` itself is unchanged apart from platform-safe home-directory fallbacks.
 
 For VR, the WebXR build in [`spatial/`](spatial) reimplements the graph, keyword extraction, 3D anchors, and palette in JavaScript so the same library looks and behaves the same in the headset. See [the Quest guide](https://403access.github.io/mindme/docs/quest).

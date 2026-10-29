@@ -6,14 +6,15 @@ description: Supported export formats, the OpenCode library, and MINDME's generi
 # Importing conversations
 
 MINDME normalizes every source into one local library. Drag files or whole folders onto the
-window, use **File → Import** (⌘I), or drop a database file directly.
+window, use **File → Import** (⌘I), or drop a database file directly. On iPhone, use the import
+button in the top bar and pick the same files or a whole folder from the Files app.
 
 | Source | Where to get it | File to import |
 | --- | --- | --- |
 | ChatGPT | Settings → Data controls → Export data | `conversations.json` |
 | Gemini | Google Takeout → My Activity → Gemini Apps | `My Activity.json` (or the Takeout folder) |
 | Claude | Settings → Privacy → Export data | `conversations.json` |
-| OpenCode | Already on this Mac | File → Import OpenCode Sessions (⌘⇧O), or drop `opencode.db` |
+| OpenCode | Already on this Mac (or pick the `.db` on iPhone) | File → Import OpenCode Sessions (⌘⇧O), or drop `opencode.db` |
 | Any tool | MINDME generic schema | a `.json` file with a `threads` array |
 
 Small synthetic exports for every format live in

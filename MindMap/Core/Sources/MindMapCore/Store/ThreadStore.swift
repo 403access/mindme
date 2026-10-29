@@ -14,7 +14,8 @@ public final class ThreadStore {
             self.directory = directory
         } else {
             let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-                ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
+                ?? URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+                    .appendingPathComponent("Library/Application Support")
             self.directory = base.appendingPathComponent("MindMap", isDirectory: true)
         }
         self.libraryURL = self.directory.appendingPathComponent("library.json")

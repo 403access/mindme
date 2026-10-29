@@ -1,11 +1,11 @@
 import SwiftUI
 import MindMapCore
-import AppKit
 
 struct DetailPanelView: View {
     @ObservedObject var model: AppModel
     var node: MindMapNode
 
+    @Environment(\.openURL) private var openURL
     @State private var expandedMessages: Set<String> = []
 
     private var thread: ConversationThread? {
@@ -520,7 +520,7 @@ struct DetailPanelView: View {
             }
             if let thread, let link = thread.deepLink, !thread.isDemo {
                 Button {
-                    NSWorkspace.shared.open(link)
+                    openURL(link)
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "arrow.up.right")

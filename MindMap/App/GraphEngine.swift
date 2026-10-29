@@ -1,7 +1,6 @@
 import Foundation
 import CoreGraphics
 import SwiftUI
-import AppKit
 import MindMapCore
 
 struct Camera: Equatable, Sendable {
@@ -224,7 +223,7 @@ final class GraphEngine: ObservableObject {
         }
 
         let interacting = now < interactionDeadline
-        let ambientActive = ambientMotion && NSApp.isActive
+        let ambientActive = ambientMotion && Platform.isAppActive
         let ambientInterval = ambientActive ? 1.0 / 10.0 : 1.0 / 2.0
         let activeInterval = 1.0 / 45.0
         let active = settling || cameraMoving || camera3DMoving || modeMoving || interacting

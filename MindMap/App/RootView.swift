@@ -1,6 +1,8 @@
 import SwiftUI
 import UniformTypeIdentifiers
+#if os(macOS)
 import AppKit
+#endif
 import MindMapCore
 
 struct RootView: View {
@@ -67,11 +69,13 @@ struct RootView: View {
         }
         .background(HUD.void)
         .onAppear {
+            #if os(macOS)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 NSApp.keyWindow?.makeFirstResponder(nil)
             }
+            #endif
         }
-        .onExitCommand { model.deselect() }
+        .dismissOnEscape { model.deselect() }
         .onDrop(of: [.fileURL], isTargeted: $dropTargeted, perform: handleDrop)
         .sheet(isPresented: $model.showHelp) {
             HelpView()
@@ -82,7 +86,7 @@ struct RootView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This deletes the normalized library from this Mac. Your original export files are untouched.")
+            Text("This deletes the normalized library from this device. Your original export files are untouched.")
         }
     }
 
@@ -133,6 +137,7 @@ private final class URLBox: @unchecked Sendable {
 
 // MARK: - Window drag
 
+#if os(macOS)
 struct WindowDragHandle: NSViewRepresentable {
     final class DragView: NSView {
         override var mouseDownCanMoveWindow: Bool { true }
@@ -145,6 +150,7 @@ struct WindowDragHandle: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView { DragView() }
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
+#endif
 
 // MARK: - Backdrop
 
@@ -270,10 +276,10 @@ struct TopBarView: View {
                 model.showHelp = true
             }
         }
-        .padding(.leading, 98)
+        .padding(.leading, Platform.isMac ? 98 : 14)
         .padding(.trailing, 18)
         .frame(height: 52)
-        .background(WindowDragHandle())
+        .windowDragHandle()
     }
 
     private func metric(value: String, label: String) -> some View {
