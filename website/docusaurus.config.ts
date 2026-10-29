@@ -65,6 +65,11 @@ const config: Config = {
           label: 'Docs',
         },
         {
+          to: '/docs/quest',
+          label: 'Quest 3',
+          position: 'left',
+        },
+        {
           href: 'https://github.com/403access/mindme',
           label: 'GitHub',
           position: 'right',
@@ -80,6 +85,7 @@ const config: Config = {
             {label: 'Getting started', to: '/docs/'},
             {label: 'Importing conversations', to: '/docs/importing'},
             {label: 'Visualization', to: '/docs/visualization'},
+            {label: 'Meta Quest 3', to: '/docs/quest'},
             {label: 'Development', to: '/docs/development'},
           ],
         },

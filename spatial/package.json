@@ -1,0 +1,25 @@
+{
+  "name": "mindme-spatial",
+  "private": true,
+  "version": "0.1.0",
+  "description": "MINDME in VR — a WebXR constellation viewer for Meta Quest 3",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:sim": "vite --open='/?xr-sim'",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "node scripts/check.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@iwer/devui": "^2.7.0",
+    "iwer": "^2.7.0",
+    "vite": "8.3.5"
+  }
+}

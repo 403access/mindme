@@ -604,6 +604,42 @@ final class AppModel: ObservableObject {
         store.revealInFinder()
     }
 
+    /// Writes the current library to a standalone JSON file for the WebXR
+    /// viewer. Nothing is uploaded: the user carries the file to the headset.
+    func exportLibraryForQuest() {
+        guard !library.threads.isEmpty else {
+            showToast(
+                "Nothing to export",
+                detail: "Import conversations or load the demo dataset first.",
+                kind: .info
+            )
+            return
+        }
+        let panel = NSSavePanel()
+        panel.title = "Export library for MINDME Spatial"
+        panel.message = "Save a library JSON, then open it in the Quest Browser before entering VR."
+        panel.prompt = "Export"
+        panel.nameFieldStringValue = "mindme-library.json"
+        panel.allowedContentTypes = [.json]
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+            encoder.dateEncodingStrategy = .iso8601
+            let data = try encoder.encode(library)
+            try data.write(to: url, options: .atomic)
+            showToast(
+                "Library exported for Quest",
+                detail: "\(library.threads.count) conversations · open the file in the headset browser",
+                kind: .success
+            )
+        } catch {
+            showToast("Could not export library", detail: error.localizedDescription, kind: .error)
+        }
+    }
+
     // MARK: - Toast
 
     func showToast(_ text: String, detail: String? = nil, kind: ToastMessage.Kind = .info) {

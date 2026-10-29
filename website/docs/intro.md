@@ -47,6 +47,8 @@ A curated demo dataset is generated on first launch so the map is explorable bef
 anything. Demo threads are labelled and can be cleared with one click; the first real import
 clears them automatically.
 
+There is also a **Meta Quest 3** build: see [Meta Quest 3](./quest.md) for the WebXR viewer.
+
 ## Screenshots
 
 ![MINDME inspector](/img/inspector.jpg)

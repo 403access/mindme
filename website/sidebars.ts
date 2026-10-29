@@ -10,6 +10,7 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: ['visualization'],
     },
+    'quest',
     'development',
   ],
 };

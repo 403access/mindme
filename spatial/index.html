@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#04060B" />
+    <meta name="description" content="MINDME in VR — a local-first constellation of your AI conversations, built for Meta Quest 3 WebXR." />
+    <title>MINDME · Spatial</title>
+    <link rel="icon" href="./favicon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+  </head>
+  <body>
+    <canvas id="stage" aria-label="MINDME constellation"></canvas>
+
+    <header id="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">MINDME</span>
+        <span class="brand-tag">SPATIAL</span>
+      </div>
+      <div class="topbar-stats" id="topbar-stats"></div>
+      <div class="topbar-actions">
+        <button id="btn-load" class="hud-button" type="button">LOAD JSON</button>
+        <button id="btn-help" class="hud-button" type="button">HELP</button>
+        <button id="btn-vr" class="hud-button vr" type="button">ENTER VR</button>
+      </div>
+    </header>
+
+    <div id="filters" class="hud-panel" aria-label="Map filters">
+      <div class="filter-group">
+        <input id="search-input" class="search-input" type="search" placeholder="SEARCH THREADS" aria-label="Search threads" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="filter-sep"></div>
+      <div class="filter-group" id="provider-filters"></div>
+      <div class="filter-sep"></div>
+      <div class="filter-group" id="grouping-filters"></div>
+      <div class="filter-sep"></div>
+      <div class="filter-group" id="window-filters"></div>
+      <div class="filter-sep"></div>
+      <div class="filter-group" id="view-filters"></div>
+    </div>
+
+    <aside id="inspector" class="hud-panel hidden" aria-live="polite">
+      <button id="inspector-close" class="icon-button" type="button" aria-label="Close inspector">×</button>
+      <div id="inspector-body"></div>
+    </aside>
+
+    <div id="launch" class="launch">
+      <div class="launch-card hud-panel">
+        <div class="launch-kicker">LOCAL-FIRST · WEBXR · QUEST 3</div>
+        <h1>Your conversations,<br />as a constellation.</h1>
+        <p class="launch-copy">
+          MINDME turns ChatGPT, Gemini, Claude, and OpenCode archives into a spatial map of
+          sources, topics, and shared language. Nothing leaves this device: the library is parsed
+          in the browser and stored locally.
+        </p>
+        <div class="launch-stats" id="launch-stats"></div>
+        <div class="launch-actions">
+          <button id="btn-explore" class="hud-button primary" type="button">ENTER THE CONSTELLATION</button>
+          <button id="btn-launch-load" class="hud-button" type="button">CHOOSE LIBRARY.JSON</button>
+          <button id="btn-launch-vr" class="hud-button vr" type="button">ENTER VR</button>
+        </div>
+        <p class="launch-note" id="launch-note">
+          Ships with the MINDME demo archive. Export a library from the macOS app
+          (File → Export Library for Quest) and load it here.
+        </p>
+
+        <section id="launch-guide" class="launch-guide hidden">
+          <div class="guide-grid">
+            <div>
+              <h3>In the headset</h3>
+              <ul>
+                <li><b>Point</b> a controller or hand at the map.</li>
+                <li><b>Trigger / pinch</b> selects a node and opens its inspector.</li>
+                <li><b>Left stick</b> walks. <b>Right stick</b> snaps the view in 30° turns; push up/down to scale the map.</li>
+                <li><b>A / X</b> recenters the map and panels in front of you.</li>
+                <li><b>Close</b> on a panel dismisses the inspector or guide.</li>
+              </ul>
+            </div>
+            <div>
+              <h3>Your data</h3>
+              <ul>
+                <li>Export from the Mac with <b>File → Export Library for Quest</b>.</li>
+                <li>Press <b>LOAD JSON</b> in the Quest Browser, then <b>ENTER VR</b>.</li>
+                <li>The file is parsed on-device and stored in this headset's browser storage. Nothing is uploaded.</li>
+                <li>Region grouping, the word-cloud lenses, and topic reclassification stay on the macOS build.</li>
+              </ul>
+              <button id="btn-clear-storage" class="hud-button" type="button">CLEAR STORED LIBRARY</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div id="drop-hint" class="drop-hint hidden">DROP A LIBRARY.JSON FILE</div>
+    <div id="toast" class="toast hidden" role="status"></div>
+    <input id="file-input" type="file" accept="application/json,.json" hidden />
+
+    <div id="desktop-hint" class="desktop-hint">
+      DRAG TO ORBIT · SCROLL TO ZOOM · CLICK A NODE TO INSPECT
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

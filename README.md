@@ -23,7 +23,7 @@ The same constellation in spatial mode:
 - **2D or 3D** — flip the map into a spatial perspective with a z-axis, depth-sorted nodes, a perspective floor, and an orbit camera. Drag to orbit, Shift-drag to pan, pinch or use +/− to zoom.
 - **Word cloud** — switch the same filtered library into a semantic cloud where keywords are sized by how many conversations share them. Click a word to isolate its threads. Toggle with **⌘4**, the **CLOUD** view control, or the sidebar.
 - **Hybrid cloud** — keep the constellation's root, hubs, threads, and links while sizing and anchoring the words to their tag nodes. The map structure stays visible beneath the vocabulary. Toggle with **⌘5**, the **HYBRID** control, or the sidebar.
-- **Stays on your Mac** — no network calls, no accounts, no telemetry. Data is normalized into `~/Library/Application Support/MindMap/library.json`.
+- **Stays on your device** — no accounts, no telemetry. The Mac app makes no network calls and normalizes data into `~/Library/Application Support/MindMap/library.json`. The Quest viewer reads the exported library on-device and stores it in the headset browser's local storage.
 
 A curated **demo dataset** is generated on first launch so the map is explorable before importing anything. Demo threads are labelled and can be cleared with one click; the first real import clears them automatically.
 
@@ -32,6 +32,7 @@ A curated **demo dataset** is generated on first launch so the map is explorable
 - macOS 14 or newer
 - Xcode 16+ (built and tested with Xcode 27 / Swift 6.4)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`) to regenerate the Xcode project
+- Node.js 22+ and a **Meta Quest 3** — or desktop Chromium for the XR simulator — for the WebXR viewer in [`spatial/`](spatial)
 
 ## Run it
 
@@ -57,6 +58,36 @@ make test-app      # app logic suite (cameras, graph engine, cloud layouts)
 make test-all      # both
 ```
 
+## Meta Quest 3
+
+The headset build is a WebXR app in [`spatial/`](spatial). It opens in the Meta Quest Browser,
+reads a normalized library export, and renders the constellation in room-scale space with a
+world-space control board and inspector. The SwiftUI app is unchanged and remains the place to
+import and analyze conversations.
+
+```bash
+cd MindMap
+make run                       # 1. import exports and analyze them on the Mac
+# File → Export Library for Quest… (⌘E)   → mindme-library.json
+
+cd ../spatial
+npm install
+npm run dev                    # 2. http://localhost:5173 (flat preview)
+adb reverse tcp:5173 tcp:5173  # 3. headset → http://localhost:5173
+```
+
+Open `http://localhost:5173` in the Quest Browser, press **LOAD JSON**, then **ENTER VR**. The
+hosted build lives at <https://403access.github.io/mindme/quest/> and is published from the docs
+workflow. Controls, deployment options, and the module map are in [`spatial/README.md`](spatial/README.md).
+
+The headset build supports provider/topic/era groupings, provider and time filters, tags, the
+spend overlay, focus paths, and transcript inspection. Region grouping, the word-cloud lenses,
+raw export import, and topic reclassification stay on the Mac.
+
+No headset handy? `cd spatial && npm run dev:sim` runs the actual immersive session in desktop
+Chromium (or a VM) through Meta's IWER simulator, including simulated Quest controllers and a
+DevUI overlay. It is development-only and never overrides native WebXR on a headset.
+
 ## Documentation site
 
 The docs are a [Docusaurus](https://docusaurus.io) site in [`website/`](website). Run it locally:
@@ -67,9 +98,11 @@ npm install
 npm start         # http://localhost:3000/mindme/
 ```
 
-`npm run build` produces a static site in `website/build`. Pushing changes under `website/`
-to `main` deploys it to GitHub Pages via [`.github/workflows/docs.yml`](.github/workflows/docs.yml);
-enable **Settings → Pages → Source: GitHub Actions** once in the repository settings.
+`npm run build` produces a static site in `website/build`. Pushing changes under `website/` or
+`spatial/` to `main` deploys it to GitHub Pages via
+[`.github/workflows/docs.yml`](.github/workflows/docs.yml); the Quest build is published at
+`/mindme/quest/`. Enable **Settings → Pages → Source: GitHub Actions** once in the repository
+settings.
 
 ## Importing conversations
 
@@ -205,11 +238,18 @@ MindMap/
     ├── Graph/               graph builder, 2D anchors/force layout, 3D anchors
     ├── Store/               local JSON persistence
     └── Demo/                deterministic demo archive
+
+spatial/                     WebXR viewer for Meta Quest 3 (three.js + Vite)
+├── src/data/                library normalization, keywords, graph, 3D anchors
+├── src/render/              instanced constellation, canvas labels
+├── src/ui/                  world-space panels + flat DOM HUD
+├── src/xr.js                session, controller/hand rays, locomotion
+└── scripts/check.mjs        headless data checks
 ```
 
 **Performance notes:** the 2D force simulation runs at 60 Hz only while settling (about six seconds), then the renderer drops to a 10 fps ambient clock. The 3D layout is deterministic and static; orbiting and projecting it is cheap, and the same throttle applies. The free word cloud packs words once per filter/size change and only animates a gentle 15 fps drift while it is on screen. The hybrid cloud caches keyword seeds, colours, and measured text per graph and re-places words only when the projection changes; word collisions use a spatial grid, and a settled camera costs a single cache-key comparison per frame. Projections are shared across the map's edge/node/label passes, and focus paths are resolved once per frame instead of per edge. All node sizes and labels are drawn in screen space so zoom changes spacing but never legibility, and the canvas only publishes a frame when something actually changed. Toggle **MOTION** off in the sidebar (or *Map → Ambient Motion*) for an essentially static, near-zero-idle-CPU map.
 
-**Privacy:** there is no networking code in the app. Export files and the OpenCode database are parsed locally and normalized into a JSON library in Application Support. Use *File → Reveal Library in Finder* to inspect or delete it.
+**Privacy:** the macOS app has no networking code. Export files and the OpenCode database are parsed locally and normalized into a JSON library in Application Support. Use *File → Reveal Library in Finder* to inspect or delete it. The Quest viewer loads a static bundle but parses and stores the library on the headset; it has no accounts, analytics, or telemetry.
 
 ## Limitations / notes
 
@@ -221,7 +261,10 @@ MindMap/
 - Keyword extraction is intentionally lightweight (TF-IDF-ish, English + German stopwords). Topic classification uses deterministic hashed bag-of-words embeddings plus seed vocabularies — explainable and offline, not a neural sentence encoder. The `TopicEmbeddingProvider` protocol is the seam for dropping in a bundled CoreML MiniLM later.
 - Topic analysis runs once per archive change and caches every thread profile by content hash. A 400-thread library takes a couple of seconds on first run; later launches reuse `topics.json`, and only new or edited conversations are reclassified.
 - The app is ad-hoc signed for local use. For distribution you will want your own Developer ID and notarization.
+- The Quest viewer accepts the normalized MINDME library JSON, not raw provider exports. Import on the Mac, then use **File → Export Library for Quest…**. It needs a secure context: `localhost` over `adb reverse`, or HTTPS hosting.
 
 ## iOS
 
 `MindMapCore` is already platform-neutral (Foundation + its own `Vec2`, iOS 17 minimum). The rendering layer is SwiftUI `Canvas`, so an iOS target mainly needs a compact sidebar/inspector presentation and touch gestures (the `MagnifyGesture` and tap handling already work on iOS 17). The project is structured so the core can be linked unchanged from a future iOS app target.
+
+For VR, the WebXR build in [`spatial/`](spatial) reimplements the graph, keyword extraction, 3D anchors, and palette in JavaScript so the same library looks and behaves the same in the headset. See [the Quest guide](https://403access.github.io/mindme/docs/quest).

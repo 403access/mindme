@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'website/**'
+      - 'spatial/**'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 
@@ -27,15 +28,34 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: website/package-lock.json
+          cache-dependency-path: |
+            website/package-lock.json
+            spatial/package-lock.json
 
-      - name: Install dependencies
+      - name: Install docs dependencies
         working-directory: website
         run: npm ci
 
-      - name: Build site
+      - name: Build docs site
         working-directory: website
         run: npm run build
+
+      - name: Install spatial dependencies
+        working-directory: spatial
+        run: npm ci
+
+      - name: Check spatial data layer
+        working-directory: spatial
+        run: npm run check
+
+      - name: Build spatial app
+        working-directory: spatial
+        run: npm run build -- --base=/mindme/quest/
+
+      - name: Publish spatial app under /quest/
+        run: |
+          mkdir -p website/build/quest
+          cp -R spatial/dist/. website/build/quest/
 
       - uses: actions/configure-pages@v5
 

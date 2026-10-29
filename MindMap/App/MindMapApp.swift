@@ -70,6 +70,12 @@ struct AppCommands: Commands {
                 model.revealLibrary()
             }
 
+            Button("Export Library for Quest…") {
+                model.exportLibraryForQuest()
+            }
+            .keyboardShortcut("e", modifiers: .command)
+            .disabled(model.library.threads.isEmpty)
+
             Button("Load Demo Dataset") {
                 model.loadDemoData()
             }

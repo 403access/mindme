@@ -8,3 +8,6 @@ MindMap/MindMap.xcodeproj/project.xcworkspace/xcuserdata/
 MindMap/Core/.build/
 DerivedData/
 *.xcuserstate
+spatial/node_modules/
+spatial/dist/
+spatial/public/library.json

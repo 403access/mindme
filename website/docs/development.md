@@ -11,7 +11,7 @@ description: Build, test, release, and understand the MINDME codebase.
 - Xcode 16+ (built and tested with Xcode 27 / Swift 6.4)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`) to regenerate the
   Xcode project
-- Node.js 20+ only for this documentation site
+- Node.js 22+ for this documentation site and the WebXR viewer in `spatial/`
 
 ## Run it
 
@@ -36,6 +36,36 @@ make test          # core suite
 make test-app      # app logic suite (cameras, graph engine, app model, cloud layouts)
 make test-all      # both
 ```
+
+## Meta Quest 3 (WebXR)
+
+The headset build is a separate static app in `spatial/`:
+
+```bash
+cd spatial
+npm install
+npm run dev       # http://localhost:5173
+npm run dev:sim   # simulated Quest 3 in desktop Chromium (?xr-sim)
+npm run check     # data-layer checks in Node
+npm run build     # spatial/dist
+```
+
+`dev:sim` uses Meta's Immersive Web Emulation Runtime (a dev dependency) to run the real
+immersive session and controller input without a headset; it is stripped from production builds
+and ignored on the Quest Browser user agent. Use it in desktop Chromium, including a VM with GPU
+acceleration, to exercise the XR path before a hardware pass.
+
+To try it on a Quest over USB, forward the dev server and open localhost in the headset browser:
+
+```bash
+adb reverse tcp:5173 tcp:5173
+```
+
+`localhost` is a secure context, so WebXR starts without HTTPS. For hosting, build with
+`--base=/mindme/quest/`; the docs workflow copies the bundle into `website/build/quest` and
+publishes it at [403access.github.io/mindme/quest](https://403access.github.io/mindme/quest/). See
+[`spatial/README.md`](https://github.com/403access/mindme/blob/main/spatial/README.md) for the
+module map, controls, and limits.
 
 ## Documentation site
 
@@ -76,6 +106,15 @@ MindMap/
 
 The core package is platform-neutral (Foundation plus its own `Vec2`/`Vec3`), so it can be
 linked unchanged from a future iOS target. The rendering layer is SwiftUI `Canvas`.
+
+```
+spatial/                     WebXR viewer (three.js + Vite)
+├── src/data/                library normalization, keywords, graph, 3D anchors
+├── src/render/              instanced constellation and canvas labels
+├── src/ui/                  world-space HUD panels and the flat DOM inspector
+├── src/xr.js                WebXR session, controller/hand rays, locomotion
+└── scripts/check.mjs        headless data-layer checks
+```
 
 ## Reading the map
 
